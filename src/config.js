@@ -1,4 +1,9 @@
-require('dotenv').config({ quiet: true });
+const fs = require('node:fs');
+const path = require('node:path');
+
+// Always read .env from the project folder, wherever the command is run from.
+const envFile = path.join(__dirname, '..', '.env');
+require('dotenv').config({ path: envFile, quiet: true });
 
 const env = process.env;
 
@@ -18,6 +23,8 @@ module.exports = {
   isProduction: env.NODE_ENV === 'production',
   sessionSecret: env.SESSION_SECRET || 'dev-only-secret-change-me',
 
+  envFile,
+  envFileExists: fs.existsSync(envFile),
   databaseUrl: env.DATABASE_URL,
   // Hosted Postgres (Neon, Supabase, Render, Railway...) needs SSL; a local database usually does not.
   databaseSsl(connectionString) {

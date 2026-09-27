@@ -148,7 +148,9 @@ CREATE INDEX IF NOT EXISTS idx_session_expire ON "session" (expire);
 
 function createPool(connectionString = config.databaseUrl) {
   if (!connectionString) {
-    throw new Error('DATABASE_URL is not set. Point it at your Postgres database (see README).');
+    throw new Error(config.envFileExists
+      ? `DATABASE_URL is missing from ${config.envFile}. Add a line like DATABASE_URL=postgresql://... and save the file.`
+      : `No .env file found at ${config.envFile}. Copy .env.example, name the copy exactly ".env" and fill in DATABASE_URL (see README).`);
   }
   return new Pool({
     connectionString,
