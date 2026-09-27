@@ -10,7 +10,7 @@ const { audit } = require('../services/audit');
 const time = require('../time');
 const { backUrl } = require('../util');
 const consultation = require('../services/consultation');
-const { consultationRoutes } = require('./consultation');
+const { consultationRoutes, takeDraft } = require('./consultation');
 
 /** Signs a user out everywhere by deleting their stored sessions. */
 async function endSessions(db, userId) {
@@ -426,7 +426,7 @@ module.exports = (db) => {
         WHERE l.entity = 'appointment' AND l.entity_id = $1 ORDER BY l.created_at`, [appt.id]);
     const record = await consultation.load(db, appt.id);
     res.render('admin/appointment', {
-      title: `Appointment ${appt.reference}`, appt, payments, log, record, sections: consultation.SECTIONS,
+      title: `Appointment ${appt.reference}`, appt, payments, log, record, sections: consultation.SECTIONS, draft: takeDraft(req, appt.id),
     });
   });
 

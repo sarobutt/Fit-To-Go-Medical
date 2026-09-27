@@ -1,7 +1,17 @@
 <%# Doctor's consultation form. Needs: base, appt, record, sections %>
-<% const d = (record && record.data) || {}; const completed = appt.status === 'completed'; %>
+<% const draftValues = typeof draft !== 'undefined' && draft ? draft.values : null;
+   const d = draftValues || (record && record.data) || {};
+   const completed = appt.status === 'completed';
+   const summaryText = draftValues ? draftValues.result_summary : appt.result_summary;
+   const notesText = draftValues ? draftValues.doctor_notes : appt.doctor_notes; %>
 <form method="post" action="<%= base %>/appointments/<%= appt.id %>/consultation" class="consultation-form">
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <% if (draftValues) { %>
+    <div class="flash error form-errors" role="alert">
+      <strong>Nothing was saved yet – please fix this and try again:</strong>
+      <ul><% for (const e of draft.errors) { %><li><%= e %></li><% } %></ul>
+    </div>
+  <% } %>
   <% for (const section of sections) { %>
     <fieldset>
       <legend><%= section.title %></legend>
@@ -35,8 +45,8 @@
   <% } %>
   <fieldset>
     <legend>Notes</legend>
-    <div class="field"><label for="result">Summary for the patient <span class="hint">(shown in their account and on the report)</span></label><textarea id="result" name="result_summary"><%= appt.result_summary || '' %></textarea></div>
-    <div class="field"><label for="notes">Private clinical notes <span class="hint">(staff only – never on the patient's documents)</span></label><textarea id="notes" name="doctor_notes"><%= appt.doctor_notes || '' %></textarea></div>
+    <div class="field"><label for="result">Summary for the patient <span class="hint">(shown in their account and on the report)</span></label><textarea id="result" name="result_summary"><%= summaryText || '' %></textarea></div>
+    <div class="field"><label for="notes">Private clinical notes <span class="hint">(staff only – never on the patient's documents)</span></label><textarea id="notes" name="doctor_notes"><%= notesText || '' %></textarea></div>
   </fieldset>
   <div class="row form-actions">
     <% if (completed) { %>

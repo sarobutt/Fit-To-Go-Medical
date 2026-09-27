@@ -67,7 +67,7 @@
       <% if (record.email_status) { %><span class="small muted">Email: <%= record.email_status %><%= record.emailed_at ? ' (' + time.formatDateTime(record.emailed_at) + ')' : '' %></span><% } %>
     </div>
     <% if (user.can_record_results) { %>
-      <details style="margin-top:18px"><summary><strong>Correct this record</strong></summary>
+      <details style="margin-top:18px" <%= typeof draft !== 'undefined' && draft ? 'open' : '' %>><summary><strong>Correct this record</strong></summary>
         <div style="margin-top:14px"><%- include('../partials/consultation-form', { base: '/doctor' }) %></div>
       </details>
     <% } %>

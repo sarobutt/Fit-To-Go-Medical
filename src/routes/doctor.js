@@ -6,7 +6,7 @@ const { ValidationError } = availability;
 const time = require('../time');
 const { backUrl } = require('../util');
 const consultation = require('../services/consultation');
-const { consultationRoutes } = require('./consultation');
+const { consultationRoutes, takeDraft } = require('./consultation');
 
 const DAY_SELECT = `
   SELECT a.id, a.reference, a.status, a.checked_in_at, s.starts_at, s.ends_at,
@@ -77,7 +77,7 @@ module.exports = (db) => {
       : null;
     const record = await consultation.load(db, appt.id);
     res.render('doctor/appointment', {
-      title: `Appointment ${appt.reference}`, appt, history, record, sections: consultation.SECTIONS,
+      title: `Appointment ${appt.reference}`, appt, history, record, sections: consultation.SECTIONS, draft: takeDraft(req, appt.id),
     });
   });
 

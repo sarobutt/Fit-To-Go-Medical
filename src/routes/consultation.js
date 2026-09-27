@@ -34,8 +34,20 @@ function emailFlash(req, result) {
  * @param canEdit (req) => boolean
  */
 function consultationRoutes(router, db, { base, findAppointment, canEdit }) {
-  router.post('/appointments/:id/consultation', async (req, res) => {
+  router.post('/appointments/:id/consultation', async (req, res, next) => {
     const id = parseInt(req.params.id, 10) || 0;
+    try {
+      await handleConsultation(req, res, id);
+    } catch (err) {
+      if (!(err instanceof ValidationError)) return next(err);
+      // Keep what the doctor typed and show the problem next to the form.
+      const { _csrf, action, ...values } = req.body;
+      req.session.consultationDraft = { appointmentId: id, values, errors: err.message.split(/(?<=\.) (?=[A-Z])/) };
+      res.redirect(`${base}/appointments/${id}#consultation`);
+    }
+  });
+
+  async function handleConsultation(req, res, id) {
     const appt = await findAppointment(req, id);
     if (!appt) return notFound(res);
     if (!canEdit(req)) throw new ValidationError('You don\'t have permission to record results.');
@@ -69,7 +81,7 @@ function consultationRoutes(router, db, { base, findAppointment, canEdit }) {
       return res.redirect(`${base}/appointments/${id}`);
     }
     throw new ValidationError('Check the patient in before recording the consultation.');
-  });
+  }
 
   for (const [path, build] of [['report.pdf', reports.medicalReport], ['certificate.pdf', reports.certificate]]) {
     router.get(`/appointments/:id/${path}`, async (req, res) => {
@@ -92,4 +104,12 @@ function consultationRoutes(router, db, { base, findAppointment, canEdit }) {
   });
 }
 
-module.exports = { consultationRoutes, sendPdf };
+/** The unsaved form values and errors from a rejected submission, shown once when the page reloads. */
+function takeDraft(req, appointmentId) {
+  const draft = req.session.consultationDraft;
+  if (!draft || draft.appointmentId !== appointmentId) return null;
+  delete req.session.consultationDraft;
+  return draft;
+}
+
+module.exports = { consultationRoutes, sendPdf, takeDraft };

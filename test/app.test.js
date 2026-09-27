@@ -26,6 +26,8 @@ async function bookAndPay({ agent, slot }) {
 test('public pages render and role areas are protected', async () => {
   const home = await request(ctx.app).get('/');
   assert.equal(home.status, 200);
+  // Browsers must send the page address within the site, so "go back" after an error works.
+  assert.equal(home.headers['referrer-policy'], 'same-origin');
   assert.match(home.text, /Fit to go medical/);
   assert.match(home.text, /Blood test/);
 
@@ -319,9 +321,14 @@ test('doctor records the consultation and the patient gets a report and certific
   rec = await ctx.db.one('SELECT * FROM consultations WHERE appointment_id = $1', [appt.id]);
   assert.equal(rec.data.pulse, undefined);
 
-  // Completing needs an outcome.
-  await doc.post$(`${url}/consultation`, { action: 'complete', bp_systolic: '128', bp_diastolic: '82' });
+  // Completing needs an outcome: the doctor stays on the form, with their answers kept and the problem shown.
+  const noOutcome = await doc.post$(`${url}/consultation`, { action: 'complete', bp_systolic: '131', bp_diastolic: '82' });
+  assert.equal(noOutcome.headers.location, `${url}#consultation`);
   assert.equal((await ctx.db.one('SELECT status FROM appointments WHERE id = $1', [appt.id])).status, 'checked_in');
+  const withErrors = (await doc.get(url)).text;
+  assert.match(withErrors, /Choose an outcome before completing the appointment/);
+  assert.match(withErrors, /name="bp_systolic"[^>]*value="131"/);
+  assert.doesNotMatch((await doc.get(url)).text, /Choose an outcome before completing/); // shown once
 
   const full = {
     action: 'complete', bp_systolic: '128', bp_diastolic: '82', pulse: '72', temperature: '36.8', spo2: '98',

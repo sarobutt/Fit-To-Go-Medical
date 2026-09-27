@@ -49,6 +49,8 @@ function createApp(pool) {
         'form-action': ["'self'", 'https://checkout.stripe.com'],
       },
     },
+    // Send the page address only within this site, so "go back" after an error returns to the right page.
+    referrerPolicy: { policy: 'same-origin' },
   }));
   app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: config.isProduction ? '1d' : 0 }));
 
