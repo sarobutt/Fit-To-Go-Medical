@@ -9,6 +9,10 @@ const { createPool, migrate, helpers } = require('../src/db');
 const { createApp } = require('../src/app');
 const payments = require('../src/services/payments');
 const time = require('../src/time');
+const totp = require('../src/totp');
+
+const STAFF_SECRET = totp.generateSecret();
+let currentDb;
 
 /** In-memory stand-in for the parts of the Stripe SDK the app uses. */
 function fakeStripe() {
@@ -63,6 +67,9 @@ async function setup() {
     'INSERT INTO users (role, name, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING *', [role, name, email, hash]);
   const admin = await mkUser('admin', 'Ada Admin', 'admin@test.io');
   const doctor = await mkUser('doctor', 'Dr Dee', 'doc@test.io');
+  // Staff already have two-step sign-in set up with a known secret.
+  await db.query('UPDATE users SET totp_secret = $1, totp_enabled = TRUE WHERE id IN ($2, $3)', [STAFF_SECRET, admin.id, doctor.id]);
+  currentDb = db;
   const patient = await mkUser('patient', 'Pat One', 'pat@test.io');
   const patient2 = await mkUser('patient', 'Pat Two', 'pat2@test.io');
   await db.query('INSERT INTO doctor_profiles (user_id) VALUES ($1)', [doctor.id]);
@@ -73,20 +80,31 @@ async function setup() {
   return { pool, db, app, stripe, admin, doctor, patient, patient2, clinic, test };
 }
 
-/** A supertest agent signed in as `email`, with a csrf() helper for form posts. */
-async function login(app, email) {
+const csrfFrom = (html) => html.match(/name="_csrf" value="([^"]+)"/)[1];
+
+/**
+ * A supertest agent signed in as `email`, with post$() for form posts.
+ * Patients use /login; staff use /staff/login plus a code from their authenticator.
+ */
+async function login(app, email, { password = 'Password123!' } = {}) {
   const agent = request.agent(app);
-  const token = async () => {
-    const res = await agent.get('/login');
-    return res.text.match(/name="_csrf" value="([^"]+)"/)[1];
-  };
-  let csrf = await token();
-  const res = await agent.post('/login').type('form').send({ _csrf: csrf, email, password: 'Password123!' });
+  const user = await currentDb.one('SELECT role FROM users WHERE email = $1', [email]);
+  const staff = user.role !== 'patient';
+  const loginPath = staff ? '/staff/login' : '/login';
+  let csrf = csrfFrom((await agent.get(loginPath)).text);
+  const res = await agent.post(loginPath).type('form').send({ _csrf: csrf, email, password });
   if (res.status !== 302) throw new Error(`login failed for ${email}: ${res.status}`);
+  if (staff) {
+    // Tests may sign the same person in twice within 30 seconds, so allow the code to be reused.
+    await currentDb.query('UPDATE users SET totp_last_step = NULL WHERE email = $1', [email]);
+    const done = await agent.post('/staff/verify').type('form')
+      .send({ _csrf: csrf, code: totp.codeAt(STAFF_SECRET, totp.currentStep()) });
+    if (done.status !== 302 || done.headers.location === '/staff/verify') throw new Error(`2FA failed for ${email}`);
+  }
   // The session is regenerated on sign-in, so fetch the new token.
-  const page = await agent.get('/tests');
-  csrf = page.text.match(/name="_csrf" value="([^"]+)"/)[1];
+  csrf = csrfFrom((await agent.get('/tests')).text);
   agent.post$ = (url, body = {}) => agent.post(url).type('form').send({ _csrf: csrf, ...body });
+  agent.csrf = csrf;
   return agent;
 }
 
@@ -103,4 +121,4 @@ async function addSlot(db, { doctor, clinic, startsAt, endsAt }) {
 
 const inDays = (d, hhmm) => `${time.addDays(time.todayLocal(), d)} ${hhmm}`;
 
-module.exports = { setup, login, addSlot, inDays, request };
+module.exports = { setup, login, addSlot, inDays, request, csrfFrom, STAFF_SECRET };

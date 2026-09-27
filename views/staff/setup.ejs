@@ -1,0 +1,20 @@
+<%- include('../partials/header') %>
+<div class="card auth-card" style="max-width:520px">
+  <h1>Set up two-step sign-in</h1>
+  <p class="muted">Staff accounts are protected with a code from your phone, so a password on its own can't open patient records.</p>
+  <ol class="setup-steps">
+    <li>Install an authenticator app on your phone, such as <strong>Google Authenticator</strong> or <strong>Microsoft Authenticator</strong>.</li>
+    <li>In the app, tap <strong>+</strong> and scan this code:
+      <div class="qr"><img src="<%= qr %>" alt="QR code for your authenticator app" width="220" height="220"></div>
+      <p class="small muted">Can't scan? Choose "enter a setup key" in the app and type: <code class="secret"><%= secret %></code></p>
+    </li>
+    <li>Enter the 6-digit code the app now shows:</li>
+  </ol>
+  <form method="post" action="/staff/setup">
+    <%- include('../partials/csrf') %>
+    <div class="field"><label for="code">6-digit code</label>
+      <input id="code" name="code" type="text" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" autocomplete="one-time-code" class="code-input" required></div>
+    <button class="btn block">Turn on and sign in</button>
+  </form>
+</div>
+<%- include('../partials/footer') %>

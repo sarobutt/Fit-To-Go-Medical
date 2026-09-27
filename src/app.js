@@ -7,7 +7,7 @@ const helmet = require('helmet');
 const config = require('./config');
 const time = require('./time');
 const { helpers } = require('./db');
-const { loadUser, csrf, flash } = require('./auth');
+const { loadUser, csrf, flash, staffArea } = require('./auth');
 const { STATUS_LABELS } = require('./services/bookings');
 const { ValidationError } = require('./services/availability');
 const { backUrl } = require('./util');
@@ -31,6 +31,7 @@ function createApp(pool) {
     time,
     STATUS_LABELS,
     cancellationHours: config.cancellationHours,
+    staffLoginUrl: `${config.appUrl}/staff/login`,
     // Defaults so the error page renders even if a request fails before these are set.
     user: null,
     flash: [],
@@ -72,8 +73,9 @@ function createApp(pool) {
   app.use('/', require('./routes/auth')(db));
   app.use('/payments', require('./routes/payments')(db));
   app.use('/patient', require('./routes/patient')(db));
-  app.use('/doctor', require('./routes/doctor')(db));
-  app.use('/admin', require('./routes/admin')(db));
+  app.use('/staff', staffArea, require('./routes/staff')(db));
+  app.use('/doctor', staffArea, require('./routes/doctor')(db));
+  app.use('/admin', staffArea, require('./routes/admin')(db));
 
   app.use((req, res) => {
     res.status(404).render('error', { title: 'Page not found', message: 'We could not find that page.' });

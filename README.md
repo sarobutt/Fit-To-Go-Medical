@@ -8,6 +8,22 @@ A booking website for a medical-testing clinic. It has three kinds of user:
 | **Doctor** | See the day's patients and **check them in** (or mark them as a no-show). Record clinical notes and a result summary for the patient, and see a patient's earlier visits. **Publish availability**, meaning sessions at their clinics that are split into bookable slots and can repeat weekly. Block or unblock single slots. |
 | **Admin** (superuser) | See an overview dashboard: revenue, bookings per day, and how full each clinic is along with its completions, cancellations and no-shows. Manage clinics and tests/prices. Add doctors, **switch each doctor's permissions on and off**, and choose which clinics each doctor works at. View and edit **patient records** with their full appointment, result and payment history. Manage every appointment: check in, complete, cancel with a Stripe refund. Publish availability for any doctor. Deactivate any account or reset its password, add more admins, and read the full audit log. |
 
+## Staff privacy & security
+
+The doctor and admin areas are private:
+
+- **Separate staff sign-in** at `/staff/login`. The public site doesn't link to it, and the patient sign-in refuses staff accounts.
+- **Two-step sign-in for every doctor and admin.** After their password, staff enter a 6-digit code from an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password…). At first sign-in they scan a QR code to set this up. Each code works once.
+- **Hidden from everyone else.** Anyone not signed in as the right kind of staff gets "Page not found" on `/admin` and `/doctor` pages, so they can't tell the pages exist. Staff pages are never cached or indexed by search engines.
+- **Temporary passwords must be replaced** at first sign-in with one of at least 12 characters. This applies to new staff accounts and password resets.
+- **Automatic sign-out** after 30 minutes of inactivity (`STAFF_IDLE_MINUTES`).
+- **Signed out everywhere** when an admin deactivates them or resets their password or two-step sign-in.
+- **Limits on guessing:** 5 wrong passwords, or 5 wrong codes, and they must wait or start again. Failed staff sign-ins are recorded in the audit log.
+- **Optional clinic-only access:** set `STAFF_ALLOWED_IPS` to your clinic's IP address(es) and staff pages only open from there.
+
+**Lost phone:** another admin opens the person's page and clicks **Reset two-step sign-in**. If the *only* admin is locked out, run this on the server:
+`npm run staff:reset -- their@email.com`. It prints a new temporary password and clears their two-step sign-in.
+
 Doctor permissions an admin controls: *manage availability & slots*, *check patients in*, *record notes & results*, *view patient history*, *cancel appointments (with refund)*.
 
 ## Tech stack
@@ -61,7 +77,7 @@ Optional variables: `CURRENCY` (default `gbp`), `CLINIC_TIMEZONE` (default `Euro
 - Start command: `npm start`
 - Run once after the first deploy: `npm run seed`. This creates the admin account plus starter clinics and tests, which you can then edit in the admin area.
 
-Then sign in as the admin, go to **Doctors → Add doctor**, and assign each doctor their clinics and permissions. Doctors then publish their availability, and patients can start booking.
+Then sign in as the admin at `https://YOUR-DOMAIN/staff/login` (you'll set up two-step sign-in on your phone), go to **Doctors → Add doctor**, and assign each doctor their clinics and permissions. Doctors then publish their availability, and patients can start booking.
 
 ## Running locally
 
@@ -76,7 +92,7 @@ To receive Stripe webhooks locally, install the [Stripe CLI](https://stripe.com/
 `stripe listen --forward-to localhost:3000/webhooks/stripe`. Put the `whsec_...` it prints into `.env`.
 Test card: `4242 4242 4242 4242`, any future date and any CVC.
 
-Demo logins (created by `--demo`, for local use only):
+Demo logins (created by `--demo`, for local use only). Patients sign in at `/login`. Staff sign in at **`/staff/login`** and are asked to set up an authenticator app the first time:
 
 | Role | Email | Password |
 |---|---|---|

@@ -1,6 +1,7 @@
 const { test, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
-const { setup, login, addSlot, inDays, request } = require('./helpers');
+const { setup, login, addSlot, inDays, request, csrfFrom, STAFF_SECRET } = require('./helpers');
+const totp = require('../src/totp');
 const time = require('../src/time');
 
 let ctx;
@@ -29,13 +30,15 @@ test('public pages render and role areas are protected', async () => {
   assert.match(home.text, /Fit to go medical/);
   assert.match(home.text, /Blood test/);
 
-  const anon = await request(ctx.app).get('/admin');
-  assert.equal(anon.status, 302);
-  assert.equal(anon.headers.location, '/login');
+  // Staff areas look like they don't exist to visitors and patients.
+  for (const path of ['/admin', '/admin/patients', '/doctor', '/doctor/availability']) {
+    assert.equal((await request(ctx.app).get(path)).status, 404, path);
+  }
+  assert.doesNotMatch(home.text, /staff\/login/);
 
   const patient = await login(ctx.app, 'pat@test.io');
-  assert.equal((await patient.get('/admin')).status, 403);
-  assert.equal((await patient.get('/doctor')).status, 403);
+  assert.equal((await patient.get('/admin')).status, 404);
+  assert.equal((await patient.get('/doctor')).status, 404);
   assert.equal((await patient.get('/patient')).status, 200);
 });
 
@@ -187,10 +190,10 @@ test('admin controls doctor permissions and clinic assignments', async () => {
   });
   assert.equal(blocked.status, 403);
 
-  // Deactivating the doctor signs them out.
+  // Deactivating the doctor signs them out everywhere.
   await admin.post$(`/admin/users/${ctx.doctor.id}/toggle`);
   const after = await doc.get('/doctor');
-  assert.equal(after.status, 302);
+  assert.equal(after.status, 404);
 });
 
 test('admin cancels with a Stripe refund; patient cannot cancel inside 24 hours', async () => {
@@ -228,4 +231,81 @@ test('admin dashboard and management pages render', async () => {
   const priced = await admin.post$('/admin/tests', { name: 'ECG', price: '65.50', duration_minutes: 20 });
   assert.equal(priced.status, 302);
   assert.equal((await ctx.db.one(`SELECT price_pence FROM tests WHERE name = 'ECG'`)).price_pence, 6550);
+});
+
+test('staff cannot use the patient sign-in, and need their phone code at the staff sign-in', async () => {
+  // Correct staff password on the patient page is refused like a wrong password.
+  const agent = request.agent(ctx.app);
+  let csrf = csrfFrom((await agent.get('/login')).text);
+  const res = await agent.post('/login').type('form').send({ _csrf: csrf, email: 'admin@test.io', password: 'Password123!' });
+  assert.equal(res.status, 401);
+  assert.equal((await agent.get('/admin')).status, 404);
+
+  // Password alone is not enough at the staff sign-in.
+  csrf = csrfFrom((await agent.get('/staff/login')).text);
+  const step1 = await agent.post('/staff/login').type('form').send({ _csrf: csrf, email: 'admin@test.io', password: 'Password123!' });
+  assert.equal(step1.headers.location, '/staff/verify');
+  assert.equal((await agent.get('/admin')).status, 404);
+
+  const wrong = await agent.post('/staff/verify').type('form').send({ _csrf: csrf, code: '000000' });
+  assert.equal(wrong.headers.location, '/staff/verify');
+  assert.equal((await agent.get('/admin')).status, 404);
+
+  const code = totp.codeAt(STAFF_SECRET, totp.currentStep());
+  const ok = await agent.post('/staff/verify').type('form').send({ _csrf: csrf, code });
+  assert.equal(ok.headers.location, '/admin');
+  assert.equal((await agent.get('/admin')).status, 200);
+
+  // The same code can't be used again by someone else.
+  const other = request.agent(ctx.app);
+  const c2 = csrfFrom((await other.get('/staff/login')).text);
+  await other.post('/staff/login').type('form').send({ _csrf: c2, email: 'admin@test.io', password: 'Password123!' });
+  const replay = await other.post('/staff/verify').type('form').send({ _csrf: c2, code });
+  assert.equal(replay.headers.location, '/staff/verify');
+
+  // Patients can't sign in at the staff page either.
+  const p = request.agent(ctx.app);
+  const c3 = csrfFrom((await p.get('/staff/login')).text);
+  const pat = await p.post('/staff/login').type('form').send({ _csrf: c3, email: 'pat@test.io', password: 'Password123!' });
+  assert.equal(pat.status, 401);
+});
+
+test('new staff set up two-step sign-in and replace their temporary password', async () => {
+  const admin = await login(ctx.app, 'admin@test.io');
+  const created = await admin.post$('/admin/doctors', { name: 'Dr New', email: 'new@test.io', password: 'Temporary-pass1' });
+  assert.equal(created.status, 302);
+
+  const agent = request.agent(ctx.app);
+  const csrf = csrfFrom((await agent.get('/staff/login')).text);
+  const step1 = await agent.post('/staff/login').type('form').send({ _csrf: csrf, email: 'new@test.io', password: 'Temporary-pass1' });
+  assert.equal(step1.headers.location, '/staff/setup');
+  const setup = await agent.get('/staff/setup');
+  assert.match(setup.text, /data:image\/png;base64/);
+  const secret = setup.text.match(/<code class="secret">([^<]+)<\/code>/)[1].replace(/\s/g, '');
+  const done = await agent.post('/staff/setup').type('form')
+    .send({ _csrf: csrf, code: totp.codeAt(secret, totp.currentStep()) });
+  assert.equal(done.status, 302);
+
+  // Forced to change the temporary password before anything else.
+  const home = await agent.get('/doctor');
+  assert.equal(home.headers.location, '/staff/change-password');
+  const page = await agent.get('/staff/change-password');
+  const c2 = csrfFrom(page.text);
+  const short = await agent.post('/staff/change-password').type('form').send({ _csrf: c2, new_password: 'short', confirm_password: 'short' });
+  assert.equal(short.headers.location, '/staff/change-password');
+  const good = await agent.post('/staff/change-password').type('form')
+    .send({ _csrf: c2, new_password: 'a much longer passphrase', confirm_password: 'a much longer passphrase' });
+  assert.equal(good.headers.location, '/doctor');
+  assert.equal((await agent.get('/doctor')).status, 200);
+  const row = await ctx.db.one(`SELECT totp_enabled, must_change_password FROM users WHERE email = 'new@test.io'`);
+  assert.deepEqual(row, { totp_enabled: true, must_change_password: false });
+});
+
+test('staff are signed out after 30 minutes of inactivity', async () => {
+  const doc = await login(ctx.app, 'doc@test.io');
+  assert.equal((await doc.get('/doctor')).status, 200);
+  await ctx.db.query(`UPDATE "session" SET sess = jsonb_set(sess::jsonb, '{lastSeen}', to_jsonb((extract(epoch from now()) * 1000 - 31 * 60000)::bigint))::json`);
+  const res = await doc.get('/doctor');
+  assert.equal(res.status, 302);
+  assert.equal(res.headers.location, '/staff/login');
 });

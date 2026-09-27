@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const config = require('./config');
 
 const DOCTOR_PERMISSIONS = {
   can_manage_availability: 'Manage availability & slots',
@@ -8,15 +9,26 @@ const DOCTOR_PERMISSIONS = {
   can_cancel_appointments: 'Cancel appointments (with refund)',
 };
 
-/** Loads the signed-in user (and doctor permissions) onto req.user / res.locals.user. */
+const STAFF_ROLES = ['doctor', 'admin'];
+const isStaff = (user) => Boolean(user && STAFF_ROLES.includes(user.role));
+
+/** Page shown for staff areas to anyone who isn't allowed in, so they don't learn the pages exist. */
+function notFound(res) {
+  return res.status(404).render('error', { title: 'Page not found', message: 'We could not find that page.' });
+}
+
+/**
+ * Loads the signed-in user (and doctor permissions) onto req.user / res.locals.user.
+ * Staff are signed out after a period of inactivity and must replace a temporary password first.
+ */
 function loadUser(db) {
   return async (req, res, next) => {
     res.locals.user = null;
     if (!req.session.userId) return next();
     try {
       const user = await db.one(
-        `SELECT u.id, u.role, u.name, u.email, u.phone, u.date_of_birth, u.is_active,
-                dp.can_manage_availability, dp.can_check_in, dp.can_record_results,
+        `SELECT u.id, u.role, u.name, u.email, u.phone, u.date_of_birth, u.is_active, u.must_change_password,
+                u.totp_enabled, dp.can_manage_availability, dp.can_check_in, dp.can_record_results,
                 dp.can_view_patient_history, dp.can_cancel_appointments, dp.specialty
            FROM users u LEFT JOIN doctor_profiles dp ON dp.user_id = u.id
           WHERE u.id = $1`,
@@ -24,6 +36,23 @@ function loadUser(db) {
       );
       if (!user || !user.is_active) {
         return req.session.regenerate(() => next());
+      }
+      if (isStaff(user)) {
+        const now = Date.now();
+        const idleLimit = config.staffIdleMinutes * 60_000;
+        // A staff session must have passed two-step sign-in and still be fresh.
+        if (!req.session.staffVerified || now - (req.session.lastSeen || 0) > idleLimit) {
+          return req.session.regenerate((err) => {
+            if (err) return next(err);
+            req.flash('info', 'You were signed out after a period of inactivity. Please sign in again.');
+            res.redirect('/staff/login');
+          });
+        }
+        req.session.lastSeen = now;
+        const allowed = ['/staff/change-password', '/logout'];
+        if (user.must_change_password && !allowed.includes(req.path)) {
+          return res.redirect('/staff/change-password');
+        }
       }
       req.user = user;
       res.locals.user = user;
@@ -34,6 +63,23 @@ function loadUser(db) {
   };
 }
 
+/** Staff pages are hidden (404) from anyone outside the optional clinic IP allow-list, and never indexed. */
+function staffArea(req, res, next) {
+  res.set('X-Robots-Tag', 'noindex, nofollow');
+  res.set('Cache-Control', 'no-store');
+  if (config.staffAllowedIps.length && !config.staffAllowedIps.includes(req.ip)) return notFound(res);
+  next();
+}
+
+/** Only signed-in staff with one of `roles` get through; everyone else sees "Page not found". */
+function requireStaff(...roles) {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) return notFound(res);
+    next();
+  };
+}
+
+/** Patient pages: sign-in prompt for visitors. */
 function requireRole(...roles) {
   return (req, res, next) => {
     if (!req.user) {
@@ -89,4 +135,7 @@ function homeFor(user) {
   return { patient: '/patient', doctor: '/doctor', admin: '/admin' }[user.role] || '/';
 }
 
-module.exports = { DOCTOR_PERMISSIONS, loadUser, requireRole, requirePermission, csrf, flash, homeFor };
+module.exports = {
+  DOCTOR_PERMISSIONS, STAFF_ROLES, isStaff, notFound, loadUser, staffArea, requireStaff, requireRole, requirePermission,
+  csrf, flash, homeFor,
+};

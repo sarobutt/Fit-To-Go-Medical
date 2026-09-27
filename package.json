@@ -11,6 +11,7 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "seed": "node src/seed.js",
+    "staff:reset": "node src/staff-reset.js",
     "test": "node --test --test-concurrency=1 test/*.test.js"
   },
   "dependencies": {
@@ -22,6 +23,7 @@
     "express-session": "^1.19.0",
     "helmet": "^8.3.0",
     "pg": "^8.23.0",
+    "qrcode": "^1.5.4",
     "stripe": "^22.6.2"
   },
   "devDependencies": {

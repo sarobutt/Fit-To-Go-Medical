@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const crypto = require('node:crypto');
-const { requireRole, DOCTOR_PERMISSIONS } = require('../auth');
+const { requireStaff, DOCTOR_PERMISSIONS } = require('../auth');
 const bookings = require('../services/bookings');
 const availability = require('../services/availability');
 const { ValidationError, LIVE_STATUSES } = availability;
@@ -9,6 +9,11 @@ const { createRepeating } = require('./doctor');
 const { audit } = require('../services/audit');
 const time = require('../time');
 const { backUrl } = require('../util');
+
+/** Signs a user out everywhere by deleting their stored sessions. */
+async function endSessions(db, userId) {
+  await db.query(`DELETE FROM "session" WHERE (sess->>'userId')::int = $1`, [userId]);
+}
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const id = (v) => parseInt(v, 10) || 0;
@@ -37,7 +42,7 @@ const APPOINTMENT_SELECT = `
 
 module.exports = (db) => {
   const router = express.Router();
-  router.use(requireRole('admin'));
+  router.use(requireStaff('admin'));
 
   // ---------- Dashboard ----------
   router.get('/', async (req, res) => {
@@ -252,14 +257,15 @@ module.exports = (db) => {
     if (password.length < 8) throw new ValidationError('Password must be at least 8 characters.');
     const doctor = await db.tx(async (c) => {
       const { rows: [u] } = await c.query(
-        `INSERT INTO users (role, name, email, password_hash, phone) VALUES ('doctor', $1, $2, $3, $4) RETURNING id`,
+        `INSERT INTO users (role, name, email, password_hash, phone, must_change_password)
+         VALUES ('doctor', $1, $2, $3, $4, TRUE) RETURNING id`,
         [name, email, await bcrypt.hash(password, 12), text(req.body.phone, 50) || null]);
       await c.query('INSERT INTO doctor_profiles (user_id) VALUES ($1)', [u.id]);
       await saveDoctorSettings(c, u.id, req.body);
       await audit(c, req.user.id, 'doctor.create', 'user', u.id, { email });
       return u;
     });
-    req.flash('success', `Doctor account created. Sign-in: ${email} / ${password} – share this securely and ask them to change it.`);
+    req.flash('success', `Doctor account created. They sign in at ${req.app.locals.staffLoginUrl} with ${email} and the temporary password ${password}. Share it privately – they'll be asked to choose their own password and set up two-step sign-in.`);
     res.redirect(`/admin/doctors/${doctor.id}`);
   });
 
@@ -305,6 +311,7 @@ module.exports = (db) => {
     if (userId === req.user.id) throw new ValidationError('You cannot deactivate your own account.');
     const u = await db.one('UPDATE users SET is_active = NOT is_active WHERE id = $1 RETURNING *', [userId]);
     if (!u) throw new ValidationError('User not found.');
+    if (!u.is_active) await endSessions(db, u.id);
     await audit(db, req.user.id, u.is_active ? 'user.activate' : 'user.deactivate', 'user', u.id);
     req.flash('success', u.is_active ? `${u.name} can sign in again.` : `${u.name} has been deactivated and can no longer sign in.`);
     res.redirect(backUrl(req, '/admin'));
@@ -312,11 +319,26 @@ module.exports = (db) => {
 
   router.post('/users/:id/reset-password', async (req, res) => {
     const password = temporaryPassword();
-    const u = await db.one('UPDATE users SET password_hash = $2 WHERE id = $1 RETURNING name, email',
+    const u = await db.one(
+      `UPDATE users SET password_hash = $2, must_change_password = (role <> 'patient') WHERE id = $1 RETURNING name, email`,
       [id(req.params.id), await bcrypt.hash(password, 12)]);
     if (!u) throw new ValidationError('User not found.');
+    if (id(req.params.id) !== req.user.id) await endSessions(db, id(req.params.id));
     await audit(db, req.user.id, 'user.reset_password', 'user', id(req.params.id));
     req.flash('success', `New temporary password for ${u.email}: ${password}`);
+    res.redirect(backUrl(req, '/admin'));
+  });
+
+  router.post('/users/:id/reset-2fa', async (req, res) => {
+    const userId = id(req.params.id);
+    if (userId === req.user.id) throw new ValidationError('Another administrator must reset your two-step sign-in.');
+    const u = await db.one(
+      `UPDATE users SET totp_secret = NULL, totp_enabled = FALSE, totp_last_step = NULL
+        WHERE id = $1 AND role IN ('doctor', 'admin') RETURNING name`, [userId]);
+    if (!u) throw new ValidationError('User not found.');
+    await endSessions(db, userId);
+    await audit(db, req.user.id, 'user.reset_2fa', 'user', userId);
+    req.flash('success', `Two-step sign-in reset for ${u.name}. They'll set it up again with a new phone next time they sign in.`);
     res.redirect(backUrl(req, '/admin'));
   });
 
@@ -333,10 +355,10 @@ module.exports = (db) => {
     if (await db.one('SELECT 1 FROM users WHERE lower(email) = $1', [email])) throw new ValidationError('That email is already in use.');
     const password = temporaryPassword();
     const u = await db.one(
-      `INSERT INTO users (role, name, email, password_hash) VALUES ('admin', $1, $2, $3) RETURNING id`,
+      `INSERT INTO users (role, name, email, password_hash, must_change_password) VALUES ('admin', $1, $2, $3, TRUE) RETURNING id`,
       [name, email, await bcrypt.hash(password, 12)]);
     await audit(db, req.user.id, 'admin.create', 'user', u.id, { email });
-    req.flash('success', `Administrator created. Temporary password for ${email}: ${password}`);
+    req.flash('success', `Administrator created. They sign in at ${req.app.locals.staffLoginUrl} with ${email} and the temporary password ${password}. Share it privately.`);
     res.redirect('/admin/admins');
   });
 

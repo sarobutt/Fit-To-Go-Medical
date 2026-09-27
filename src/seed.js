@@ -32,9 +32,12 @@ async function seed({ demo = false } = {}) {
     const adminEmail = (process.env.ADMIN_EMAIL || 'admin@fittogo.test').toLowerCase();
     const adminPassword = process.env.ADMIN_PASSWORD || 'ChangeMe123!';
     if (!(await db.one(`SELECT 1 FROM users WHERE role = 'admin'`))) {
-      await db.query(`INSERT INTO users (role, name, email, password_hash) VALUES ('admin', 'Clinic Administrator', $1, $2)`,
-        [adminEmail, await bcrypt.hash(adminPassword, 12)]);
-      console.log(`Created administrator ${adminEmail}${process.env.ADMIN_PASSWORD ? '' : ` (password: ${adminPassword} – change it after signing in)`}`);
+      await db.query(
+        `INSERT INTO users (role, name, email, password_hash, must_change_password)
+         VALUES ('admin', 'Clinic Administrator', $1, $2, $3)`,
+        [adminEmail, await bcrypt.hash(adminPassword, 12), !process.env.ADMIN_PASSWORD]);
+      console.log(`Created administrator ${adminEmail}${process.env.ADMIN_PASSWORD ? '' : ` (temporary password: ${adminPassword})`}`);
+      console.log('Staff sign in at /staff/login and set up two-step sign-in with an authenticator app.');
     }
 
     if (!(await db.one('SELECT 1 FROM clinics'))) {

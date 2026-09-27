@@ -1,23 +1,20 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { homeFor } = require('../auth');
+const { homeFor, isStaff } = require('../auth');
+const { tooManyAttempts, recordFailure, clearFailures } = require('../ratelimit');
+const config = require('../config');
 const { audit } = require('../services/audit');
 const time = require('../time');
 const { backUrl } = require('../util');
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Simple in-memory brake on password guessing: 10 failures per email+IP per 15 minutes.
-const failures = new Map();
-function tooManyAttempts(key) {
-  const entry = failures.get(key);
-  if (!entry || entry.until < Date.now()) return false;
-  return entry.count >= 10;
-}
-function recordFailure(key) {
-  const entry = failures.get(key);
-  if (!entry || entry.until < Date.now()) failures.set(key, { count: 1, until: Date.now() + 15 * 60_000 });
-  else entry.count++;
+// Compared against when the email is unknown, so response time doesn't reveal which emails have accounts.
+const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 12);
+
+async function checkPassword(user, password) {
+  const ok = await bcrypt.compare(password, user ? user.password_hash : DUMMY_HASH);
+  return Boolean(user && ok);
 }
 
 function signIn(req, user, cb) {
@@ -46,7 +43,9 @@ module.exports = (db) => {
       return res.status(429).render('auth/login', { title: 'Sign in', email });
     }
     const user = await db.one('SELECT * FROM users WHERE lower(email) = $1', [email]);
-    if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+    const passwordOk = await checkPassword(user, password);
+    // Staff never sign in here; they use the separate staff sign-in with two-step verification.
+    if (!passwordOk || isStaff(user)) {
       recordFailure(key);
       res.locals.flash = [{ type: 'error', message: 'Email or password is incorrect.' }];
       return res.status(401).render('auth/login', { title: 'Sign in', email });
@@ -55,7 +54,7 @@ module.exports = (db) => {
       res.locals.flash = [{ type: 'error', message: 'This account has been deactivated. Please contact the clinic.' }];
       return res.status(403).render('auth/login', { title: 'Sign in', email });
     }
-    failures.delete(key);
+    clearFailures(key);
     await audit(db, user.id, 'auth.login', 'user', user.id);
     signIn(req, user, (err, dest) => (err ? next(err) : res.redirect(dest)));
   });
@@ -106,10 +105,11 @@ module.exports = (db) => {
     const back = backUrl(req, homeFor(req.user));
     const row = await db.one('SELECT password_hash FROM users WHERE id = $1', [req.user.id]);
     const next = String(req.body.new_password || '');
+    const minLength = isStaff(req.user) ? config.staffMinPasswordLength : 8;
     if (!(await bcrypt.compare(String(req.body.current_password || ''), row.password_hash))) {
       req.flash('error', 'Your current password is incorrect.');
-    } else if (next.length < 8) {
-      req.flash('error', 'New password must be at least 8 characters.');
+    } else if (next.length < minLength) {
+      req.flash('error', `New password must be at least ${minLength} characters.`);
     } else {
       await db.query('UPDATE users SET password_hash = $2 WHERE id = $1', [req.user.id, await bcrypt.hash(next, 12)]);
       await audit(db, req.user.id, 'auth.change_password', 'user', req.user.id);
@@ -119,12 +119,15 @@ module.exports = (db) => {
   });
 
   router.post('/logout', (req, res, next) => {
+    const staff = isStaff(req.user);
     req.session.destroy((err) => {
       if (err) return next(err);
       res.clearCookie('ftg.sid');
-      res.redirect('/');
+      res.redirect(staff ? '/staff/login' : '/');
     });
   });
 
   return router;
 };
+
+module.exports.checkPassword = checkPassword;

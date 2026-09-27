@@ -1,5 +1,5 @@
 const express = require('express');
-const { requireRole, requirePermission, DOCTOR_PERMISSIONS } = require('../auth');
+const { requireStaff, requirePermission, DOCTOR_PERMISSIONS } = require('../auth');
 const bookings = require('../services/bookings');
 const availability = require('../services/availability');
 const { ValidationError } = availability;
@@ -34,7 +34,7 @@ async function createRepeating(db, input, repeatWeeks) {
 
 module.exports = (db) => {
   const router = express.Router();
-  router.use(requireRole('doctor'));
+  router.use(requireStaff('doctor'));
 
   router.get('/', async (req, res) => {
     const date = time.isDate(req.query.date) ? req.query.date : time.todayLocal();

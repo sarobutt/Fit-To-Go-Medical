@@ -42,6 +42,12 @@ module.exports = {
 
   // Stripe Checkout sessions last at least 30 minutes, so the slot is held that long.
   holdMinutes: 30,
+  // Staff (doctors & admins) are signed out after this much inactivity.
+  staffIdleMinutes: parseInt(env.STAFF_IDLE_MINUTES || '30', 10),
+  staffMinPasswordLength: 12,
+  // Optional: comma-separated IP addresses allowed to reach staff pages (e.g. the clinic's connection).
+  staffAllowedIps: (env.STAFF_ALLOWED_IPS || '').split(',').map((s) => s.trim()).filter(Boolean),
+
   // Patients may cancel (with a full refund) up to this many hours before the appointment.
   cancellationHours: parseInt(env.CANCELLATION_HOURS || '24', 10),
 };
