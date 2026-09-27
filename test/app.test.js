@@ -241,8 +241,12 @@ test('staff sign in only at the staff page, with email and password', async () =
   const agent = request.agent(ctx.app);
   let csrf = csrfFrom((await agent.get('/login')).text);
   const res = await agent.post('/login').type('form').send({ _csrf: csrf, email: 'admin@test.io', password: 'Password123!' });
-  assert.equal(res.status, 401);
+  assert.equal(res.headers.location, '/staff/login?from=patient');
+  assert.match((await agent.get(res.headers.location)).text, /Doctors and admins sign in on this page/);
   assert.equal((await agent.get('/admin')).status, 404);
+  // A wrong password for a staff email gets the ordinary message.
+  const wrongOnPatient = await agent.post('/login').type('form').send({ _csrf: csrf, email: 'admin@test.io', password: 'nope' });
+  assert.equal(wrongOnPatient.status, 401);
 
   csrf = csrfFrom((await agent.get('/staff/login')).text);
   const wrong = await agent.post('/staff/login').type('form').send({ _csrf: csrf, email: 'admin@test.io', password: 'nope' });

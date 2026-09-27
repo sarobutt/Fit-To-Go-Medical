@@ -22,6 +22,11 @@ module.exports = (db) => {
 
   router.get('/login', (req, res) => {
     if (isStaff(req.user)) return res.redirect(homeFor(req.user));
+    if (req.query.from === 'patient') {
+      res.locals.flash = [...res.locals.flash, {
+        type: 'info', message: 'Doctors and admins sign in on this page. Please enter your email and password again.',
+      }];
+    }
     res.render('staff/login', { title: 'Staff sign in', email: '' });
   });
 

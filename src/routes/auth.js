@@ -44,8 +44,12 @@ module.exports = (db) => {
     }
     const user = await db.one('SELECT * FROM users WHERE lower(email) = $1', [email]);
     const passwordOk = await checkPassword(user, password);
-    // Staff never sign in here; they use the separate staff sign-in at /staff/login.
-    if (!passwordOk || isStaff(user)) {
+    // Staff sign in at /staff/login. Someone who got a staff password right is pointed there;
+    // anyone else just sees the usual message, so the page doesn't reveal which emails are staff.
+    if (passwordOk && isStaff(user)) {
+      return res.redirect(303, '/staff/login?from=patient');
+    }
+    if (!passwordOk) {
       recordFailure(key);
       res.locals.flash = [{ type: 'error', message: 'Email or password is incorrect.' }];
       return res.status(401).render('auth/login', { title: 'Sign in', email });
