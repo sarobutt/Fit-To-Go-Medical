@@ -39,26 +39,6 @@
     </div>
   </div>
   <div class="stack">
-    <div class="card">
-      <h2>Consultation</h2>
-      <% if (appt.status === 'checked_in') { %>
-        <% if (user.can_record_results) { %>
-          <form method="post" action="/doctor/appointments/<%= appt.id %>/complete">
-            <%- include('../partials/csrf') %>
-            <div class="field"><label for="notes">Clinical notes <span class="hint">(internal – not shown to patient)</span></label><textarea id="notes" name="doctor_notes"></textarea></div>
-            <div class="field"><label for="result">Result summary <span class="hint">(shown to patient)</span></label><textarea id="result" name="result_summary"></textarea></div>
-            <button class="btn">Complete appointment</button>
-          </form>
-        <% } else { %>
-          <p class="muted">You don't have permission to record results.</p>
-        <% } %>
-      <% } else if (appt.status === 'completed') { %>
-        <h3>Result summary</h3><p><%= appt.result_summary || '—' %></p>
-        <h3>Clinical notes</h3><p><%= appt.doctor_notes || '—' %></p>
-      <% } else { %>
-        <p class="muted">Check the patient in to start the consultation.</p>
-      <% } %>
-    </div>
     <div class="card flush">
       <h2>Previous visits</h2>
       <% if (history === null) { %>
@@ -74,5 +54,35 @@
       <% } %>
     </div>
   </div>
+</div>
+<div class="card" style="margin-top:16px" id="consultation">
+  <div class="card-head"><h2>Consultation record</h2><% if (record && record.amended_at) { %><span class="small muted">Amended <%= time.formatDateTime(record.amended_at) %></span><% } %></div>
+  <% if (appt.status === 'completed' && record && record.finalised_at) { %>
+    <% if (record.outcome) { %><div class="outcome-banner">Outcome: <%= OUTCOMES[record.outcome] %></div><% } %>
+    <%- include('../partials/consultation-summary', { docsBase: '/doctor' }) %>
+    <% if (appt.result_summary) { %><h3 class="summary-title">Summary for the patient</h3><p><%= appt.result_summary %></p><% } %>
+    <% if (appt.doctor_notes) { %><h3 class="summary-title">Private clinical notes</h3><p><%= appt.doctor_notes %></p><% } %>
+    <div class="row" style="margin-top:14px">
+      <form method="post" action="/doctor/appointments/<%= appt.id %>/email-results" class="inline-form" data-confirm="Email the report and certificate to <%= appt.patient_email %>?"><%- include('../partials/csrf') %><button class="btn secondary">Email documents to patient</button></form>
+      <% if (record.email_status) { %><span class="small muted">Email: <%= record.email_status %><%= record.emailed_at ? ' (' + time.formatDateTime(record.emailed_at) + ')' : '' %></span><% } %>
+    </div>
+    <% if (user.can_record_results) { %>
+      <details style="margin-top:18px"><summary><strong>Correct this record</strong></summary>
+        <div style="margin-top:14px"><%- include('../partials/consultation-form', { base: '/doctor' }) %></div>
+      </details>
+    <% } %>
+  <% } else if (appt.status === 'checked_in') { %>
+    <% if (user.can_record_results) { %>
+      <p class="muted">Fill in what applies to this test and leave the rest blank. Use <strong>Save progress</strong> as you go; <strong>Complete</strong> creates the report and certificate and sends them to the patient.</p>
+      <%- include('../partials/consultation-form', { base: '/doctor' }) %>
+    <% } else { %>
+      <p class="muted">You don't have permission to record results.</p>
+    <% } %>
+  <% } else if (appt.status === 'completed') { %>
+    <h3 class="summary-title">Summary for the patient</h3><p><%= appt.result_summary || '—' %></p>
+    <h3 class="summary-title">Private clinical notes</h3><p><%= appt.doctor_notes || '—' %></p>
+  <% } else { %>
+    <p class="muted">Check the patient in to start the consultation record.</p>
+  <% } %>
 </div>
 <%- include('../partials/footer') %>

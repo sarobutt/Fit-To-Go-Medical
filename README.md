@@ -24,6 +24,24 @@ The doctor and admin areas are private:
 **Forgotten password:** another admin opens the person's page and clicks **Reset password**. If the *only* admin is locked out, run this on the server:
 `npm run staff:reset -- their@email.com`. It prints a new temporary password.
 
+## Consultation record, report and certificate
+
+When a patient has been checked in, the doctor fills in the **consultation record** on the appointment page. They only fill in what applies to the test, and can **save progress** as they go:
+
+- **Vital signs:** blood pressure, pulse, temperature, oxygen saturation, height and weight. BMI is worked out automatically.
+- **Medical history:** medications, allergies (or "no known allergies"), existing conditions, smoking, alcohol, and recent illness or surgery.
+- **Test findings:** vision (right and left eye), colour vision, hearing, urinalysis, sample taken with its ID, and other examination findings.
+- **Outcome:** Fit / Fit with restrictions / Unfit / Referred, plus restrictions and a "valid until" date.
+- **Notes:** a summary for the patient, and private clinical notes that never appear on the patient's documents.
+
+**Complete appointment & create documents** produces two PDFs:
+- **Medical report:** everything recorded, signed by the doctor with their registration number.
+- **Certificate:** a one-page statement of the outcome, for an airline or employer.
+
+The patient downloads both from their account. They are also **emailed** to the patient, protected with the patient's date of birth (DDMMYYYY) as the password. If the patient has no date of birth on file, the email contains a link instead. Doctors and admins can open both PDFs and re-send the email. If a completed record needs correcting, the documents show that it was amended and when.
+
+Set each doctor's registration number (e.g. GMC number) in **Admin → Doctors**. To turn on email, fill in the `SMTP_*` settings in `.env` (see `.env.example`).
+
 Doctor permissions an admin controls: *manage availability & slots*, *check patients in*, *record notes & results*, *view patient history*, *cancel appointments (with refund)*.
 
 ## Tech stack

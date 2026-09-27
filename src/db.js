@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS doctor_profiles (
   can_view_patient_history BOOLEAN NOT NULL DEFAULT TRUE,
   can_cancel_appointments  BOOLEAN NOT NULL DEFAULT FALSE
 );
+-- Professional registration (e.g. GMC number) printed on reports and certificates.
+ALTER TABLE doctor_profiles ADD COLUMN IF NOT EXISTS registration_number TEXT;
 
 CREATE TABLE IF NOT EXISTS clinics (
   id            SERIAL PRIMARY KEY,
@@ -113,6 +115,20 @@ CREATE TABLE IF NOT EXISTS appointments (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_appointments_live_slot ON appointments (slot_id)
   WHERE status IN ('pending_payment', 'confirmed', 'checked_in', 'completed', 'no_show');
 CREATE INDEX IF NOT EXISTS idx_appointments_patient ON appointments (patient_id);
+
+-- What the doctor records during the appointment (vitals, history, findings, outcome).
+CREATE TABLE IF NOT EXISTS consultations (
+  appointment_id INTEGER PRIMARY KEY REFERENCES appointments(id) ON DELETE CASCADE,
+  data           JSONB NOT NULL DEFAULT '{}',
+  outcome        TEXT CHECK (outcome IN ('fit', 'fit_with_restrictions', 'unfit', 'referred')),
+  recorded_by    INTEGER REFERENCES users(id),
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  finalised_at   TIMESTAMPTZ,
+  amended_at     TIMESTAMPTZ,
+  emailed_at     TIMESTAMPTZ,
+  email_status   TEXT
+);
 
 CREATE TABLE IF NOT EXISTS payments (
   id             SERIAL PRIMARY KEY,

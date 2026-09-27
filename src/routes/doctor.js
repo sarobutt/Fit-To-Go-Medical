@@ -5,6 +5,8 @@ const availability = require('../services/availability');
 const { ValidationError } = availability;
 const time = require('../time');
 const { backUrl } = require('../util');
+const consultation = require('../services/consultation');
+const { consultationRoutes } = require('./consultation');
 
 const DAY_SELECT = `
   SELECT a.id, a.reference, a.status, a.checked_in_at, s.starts_at, s.ends_at,
@@ -73,7 +75,10 @@ module.exports = (db) => {
           WHERE a.patient_id = $1 AND a.id <> $2 AND a.status = 'completed' ORDER BY s.starts_at DESC`,
         [appt.patient_id, appt.id])
       : null;
-    res.render('doctor/appointment', { title: `Appointment ${appt.reference}`, appt, history });
+    const record = await consultation.load(db, appt.id);
+    res.render('doctor/appointment', {
+      title: `Appointment ${appt.reference}`, appt, history, record, sections: consultation.SECTIONS,
+    });
   });
 
   router.post('/appointments/:id/check-in', requirePermission('can_check_in'), async (req, res) => {
@@ -88,15 +93,12 @@ module.exports = (db) => {
     res.redirect(backUrl(req, '/doctor'));
   });
 
-  router.post('/appointments/:id/complete', requirePermission('can_record_results'), async (req, res) => {
-    const id = parseInt(req.params.id, 10) || 0;
-    await bookings.complete(db, {
-      appointmentId: id, actorId: req.user.id, doctorId: req.user.id,
-      notes: String(req.body.doctor_notes || '').trim().slice(0, 5000),
-      result: String(req.body.result_summary || '').trim().slice(0, 5000),
-    });
-    req.flash('success', 'Appointment completed and results saved.');
-    res.redirect(`/doctor/appointments/${id}`);
+  consultationRoutes(router, db, {
+    base: '/doctor',
+    findAppointment: (req, id) => db.one(
+      `SELECT a.id, a.status FROM appointments a JOIN slots s ON s.id = a.slot_id WHERE a.id = $1 AND s.doctor_id = $2`,
+      [id, req.user.id]),
+    canEdit: (req) => Boolean(req.user.can_record_results),
   });
 
   router.post('/appointments/:id/cancel', requirePermission('can_cancel_appointments'), async (req, res) => {

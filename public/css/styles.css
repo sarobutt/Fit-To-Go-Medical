@@ -210,3 +210,15 @@ dl.details dd { margin: 0; }
   .bar-axis span:nth-child(even) { visibility: hidden; }
 }
 
+
+/* ---------- Consultation ---------- */
+.consultation-form fieldset { border: 0; padding: 0; margin: 0 0 18px; }
+.consultation-form legend { font-weight: 700; font-size: 1rem; color: var(--brand-dark); padding: 0; margin-bottom: 10px; border-bottom: 1px solid var(--border); width: 100%; padding-bottom: 6px; }
+.consultation-form .form-row { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); align-items: end; }
+.consultation-form .field.wide { grid-column: 1 / -1; }
+.consultation-form textarea { min-height: 70px; }
+.bmi-output { display: block; padding: 9px 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.form-actions { justify-content: flex-end; border-top: 1px solid var(--border); padding-top: 14px; }
+.doc-links { margin-bottom: 14px; }
+.summary-title { font-size: .95rem; color: var(--brand-dark); margin: 16px 0 8px; }
+.outcome-banner { padding: 12px 16px; border-radius: 8px; background: var(--brand-soft); color: var(--brand-dark); font-weight: 700; margin-bottom: 12px; }

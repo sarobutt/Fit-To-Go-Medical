@@ -11,6 +11,7 @@ const { loadUser, csrf, flash, staffArea } = require('./auth');
 const { STATUS_LABELS } = require('./services/bookings');
 const { ValidationError } = require('./services/availability');
 const { backUrl } = require('./util');
+const consultation = require('./services/consultation');
 
 function money(pence) {
   return new Intl.NumberFormat('en-GB', { style: 'currency', currency: config.currency.toUpperCase() })
@@ -32,6 +33,8 @@ function createApp(pool) {
     STATUS_LABELS,
     cancellationHours: config.cancellationHours,
     staffLoginUrl: `${config.appUrl}/staff/login`,
+    consultationSummary: consultation.summary,
+    OUTCOMES: consultation.OUTCOMES,
     // Defaults so the error page renders even if a request fails before these are set.
     user: null,
     flash: [],

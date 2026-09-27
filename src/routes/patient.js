@@ -4,6 +4,9 @@ const bookings = require('../services/bookings');
 const { ValidationError } = require('../services/availability');
 const { audit } = require('../services/audit');
 const time = require('../time');
+const reports = require('../services/reports');
+const { sendPdf } = require('./consultation');
+const consultation = require('../services/consultation');
 
 const APPOINTMENT_SELECT = `
   SELECT a.*, s.starts_at, s.ends_at, t.name AS test_name, t.preparation, t.turnaround,
@@ -66,10 +69,22 @@ module.exports = (db) => {
       [parseInt(req.params.id, 10) || 0, req.user.id]);
     if (!appt) return res.status(404).render('error', { title: 'Not found', message: 'Appointment not found.' });
     const payments = await db.all('SELECT * FROM payments WHERE appointment_id = $1 ORDER BY id', [appt.id]);
+    const record = await consultation.load(db, appt.id);
     res.render('patient/appointment', {
+      record,
       title: `Appointment ${appt.reference}`, appt, payments, canCancel: bookings.patientCanCancel(appt),
     });
   });
+
+  for (const [path, build] of [['report.pdf', reports.medicalReport], ['certificate.pdf', reports.certificate]]) {
+    router.get(`/appointments/:id/${path}`, async (req, res) => {
+      const own = await db.one(`SELECT id FROM appointments WHERE id = $1 AND patient_id = $2 AND status = 'completed'`,
+        [parseInt(req.params.id, 10) || 0, req.user.id]);
+      const doc = own && await build(db, own.id);
+      if (!doc) return res.status(404).render('error', { title: 'Not found', message: 'That document isn\'t available.' });
+      sendPdf(res, doc);
+    });
+  }
 
   router.post('/appointments/:id/pay', async (req, res) => {
     const url = await bookings.resumeCheckout(db, { appointmentId: parseInt(req.params.id, 10) || 0, patientId: req.user.id });

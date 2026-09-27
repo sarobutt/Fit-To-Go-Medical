@@ -1,0 +1,49 @@
+<%# Doctor's consultation form. Needs: base, appt, record, sections %>
+<% const d = (record && record.data) || {}; const completed = appt.status === 'completed'; %>
+<form method="post" action="<%= base %>/appointments/<%= appt.id %>/consultation" class="consultation-form">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <% for (const section of sections) { %>
+    <fieldset>
+      <legend><%= section.title %></legend>
+      <div class="form-row">
+      <% for (const f of section.fields) { const id = 'c_' + f.key; const wide = f.type === 'textarea' || f.type === 'checkbox' || f.key === 'outcome'; %>
+        <div class="field<%= wide ? ' wide' : '' %>">
+          <% if (f.type === 'checkbox') { %>
+            <label class="checkbox"><input type="checkbox" id="<%= id %>" name="<%= f.key %>" <%= d[f.key] ? 'checked' : '' %>> <%= f.label %></label>
+          <% } else { %>
+            <label for="<%= id %>"><%= f.label %><% if (f.unit) { %> <span class="hint">(<%= f.unit %>)</span><% } %><% if (f.required) { %> <span class="hint">– required to complete</span><% } %></label>
+            <% if (f.type === 'textarea') { %>
+              <textarea id="<%= id %>" name="<%= f.key %>" placeholder="<%= f.placeholder || '' %>"><%= d[f.key] || '' %></textarea>
+            <% } else if (f.type === 'choice') { %>
+              <select id="<%= id %>" name="<%= f.key %>">
+                <option value="">–</option>
+                <% for (const [k, label] of Object.entries(f.options)) { %><option value="<%= k %>" <%= d[f.key] === k ? 'selected' : '' %>><%= label %></option><% } %>
+              </select>
+            <% } else { %>
+              <input id="<%= id %>" name="<%= f.key %>" type="<%= f.type === 'number' ? 'number' : f.type %>" value="<%= d[f.key] ?? '' %>"
+                <% if (f.type === 'number') { %>min="<%= f.min %>" max="<%= f.max %>" step="<%= f.step || 1 %>" inputmode="decimal"<% } %>
+                placeholder="<%= f.placeholder || '' %>" <%= f.key === 'height_cm' || f.key === 'weight_kg' ? 'data-bmi' : '' %>>
+            <% } %>
+          <% } %>
+        </div>
+        <% if (f.key === 'weight_kg') { %>
+          <div class="field"><label>BMI</label><output class="bmi-output" data-bmi-output><%= (d.height_cm && d.weight_kg) ? (Math.round(d.weight_kg / Math.pow(d.height_cm / 100, 2) * 10) / 10) : '–' %></output></div>
+        <% } %>
+      <% } %>
+      </div>
+    </fieldset>
+  <% } %>
+  <fieldset>
+    <legend>Notes</legend>
+    <div class="field"><label for="result">Summary for the patient <span class="hint">(shown in their account and on the report)</span></label><textarea id="result" name="result_summary"><%= appt.result_summary || '' %></textarea></div>
+    <div class="field"><label for="notes">Private clinical notes <span class="hint">(staff only – never on the patient's documents)</span></label><textarea id="notes" name="doctor_notes"><%= appt.doctor_notes || '' %></textarea></div>
+  </fieldset>
+  <div class="row form-actions">
+    <% if (completed) { %>
+      <button class="btn" name="action" value="amend" data-confirm-button="Save corrections? The report and certificate will be marked as amended.">Save corrections</button>
+    <% } else { %>
+      <button class="btn secondary" name="action" value="save">Save progress</button>
+      <button class="btn" name="action" value="complete">Complete appointment &amp; create documents</button>
+    <% } %>
+  </div>
+</form>

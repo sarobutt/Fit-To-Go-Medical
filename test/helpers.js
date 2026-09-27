@@ -8,6 +8,7 @@ const bcrypt = require('bcryptjs');
 const { createPool, migrate, helpers } = require('../src/db');
 const { createApp } = require('../src/app');
 const payments = require('../src/services/payments');
+const mailer = require('../src/services/mailer');
 const time = require('../src/time');
 
 let currentDb;
@@ -58,6 +59,8 @@ async function setup() {
   const db = helpers(pool);
   const stripe = fakeStripe();
   payments.setStripe(stripe);
+  const mail = [];
+  mailer.setTransport({ sendMail: async (message) => { mail.push(message); } });
   const app = createApp(pool);
 
   const hash = await bcrypt.hash('Password123!', 4);
@@ -73,7 +76,7 @@ async function setup() {
   await db.query('INSERT INTO doctor_clinics VALUES ($1, $2)', [doctor.id, clinic.id]);
   const test = await db.one(`INSERT INTO tests (name, price_pence) VALUES ('Blood test', 4900) RETURNING *`);
 
-  return { pool, db, app, stripe, admin, doctor, patient, patient2, clinic, test };
+  return { pool, db, app, stripe, mail, admin, doctor, patient, patient2, clinic, test };
 }
 
 const csrfFrom = (html) => html.match(/name="_csrf" value="([^"]+)"/)[1];

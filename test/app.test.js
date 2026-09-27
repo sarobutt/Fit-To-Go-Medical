@@ -162,7 +162,9 @@ test('doctor publishes availability, checks a patient in and records results', a
   assert.equal((await doc.post$(`/doctor/appointments/${appt.id}/check-in`)).status, 302);
   assert.equal((await ctx.db.one('SELECT status FROM appointments WHERE id = $1', [appt.id])).status, 'checked_in');
 
-  await doc.post$(`/doctor/appointments/${appt.id}/complete`, { doctor_notes: 'internal', result_summary: 'All normal' });
+  await doc.post$(`/doctor/appointments/${appt.id}/consultation`, {
+    action: 'complete', outcome: 'fit', doctor_notes: 'internal', result_summary: 'All normal',
+  });
   const done = await ctx.db.one('SELECT * FROM appointments WHERE id = $1', [appt.id]);
   assert.equal(done.status, 'completed');
   assert.equal(done.result_summary, 'All normal');
@@ -288,4 +290,76 @@ test('staff are signed out after 30 minutes of inactivity', async () => {
   const res = await doc.get('/doctor');
   assert.equal(res.status, 302);
   assert.equal(res.headers.location, '/staff/login');
+});
+
+test('doctor records the consultation and the patient gets a report and certificate', async () => {
+  await ctx.db.query(`UPDATE users SET date_of_birth = '1990-04-12' WHERE id = $1`, [ctx.patient.id]);
+  await ctx.db.query(`UPDATE doctor_profiles SET registration_number = 'GMC 1234567' WHERE user_id = $1`, [ctx.doctor.id]);
+  const slot = await addSlot(ctx.db, { ...ctx, startsAt: `${time.todayLocal()} 00:00`, endsAt: `${time.todayLocal()} 00:15` });
+  const appt = await ctx.db.one(
+    `INSERT INTO appointments (reference, patient_id, slot_id, test_id, status, price_pence)
+     VALUES ('FTG-CONS01', $1, $2, $3, 'checked_in', 4900) RETURNING id`, [ctx.patient.id, slot.id, ctx.test.id]);
+  const doc = await login(ctx.app, 'doc@test.io');
+  const url = `/doctor/appointments/${appt.id}`;
+
+  assert.match((await doc.get(url)).text, /Blood pressure – systolic/);
+
+  // Save part-way through, then an invalid reading is rejected.
+  await doc.post$(`${url}/consultation`, { action: 'save', bp_systolic: '128', bp_diastolic: '82', height_cm: '175', weight_kg: '70' });
+  let rec = await ctx.db.one('SELECT * FROM consultations WHERE appointment_id = $1', [appt.id]);
+  assert.equal(rec.data.bp_systolic, 128);
+  assert.equal(rec.finalised_at, null);
+  await doc.post$(`${url}/consultation`, { action: 'save', pulse: '900' });
+  rec = await ctx.db.one('SELECT * FROM consultations WHERE appointment_id = $1', [appt.id]);
+  assert.equal(rec.data.pulse, undefined);
+
+  // Completing needs an outcome.
+  await doc.post$(`${url}/consultation`, { action: 'complete', bp_systolic: '128', bp_diastolic: '82' });
+  assert.equal((await ctx.db.one('SELECT status FROM appointments WHERE id = $1', [appt.id])).status, 'checked_in');
+
+  const full = {
+    action: 'complete', bp_systolic: '128', bp_diastolic: '82', pulse: '72', temperature: '36.8', spo2: '98',
+    height_cm: '175', weight_kg: '70', medications: 'None', no_known_allergies: 'on', smoking: 'never',
+    vision_right: '6/6', vision_left: '6/9', hearing: 'normal', outcome: 'fit_with_restrictions',
+    restrictions: 'Must wear glasses when driving', valid_until: time.addDays(time.todayLocal(), 365),
+    result_summary: 'Healthy – fit to drive with glasses.', doctor_notes: 'SECRET-INTERNAL-NOTE',
+  };
+  await doc.post$(`${url}/consultation`, full);
+  assert.equal((await ctx.db.one('SELECT status FROM appointments WHERE id = $1', [appt.id])).status, 'completed');
+  rec = await ctx.db.one('SELECT * FROM consultations WHERE appointment_id = $1', [appt.id]);
+  assert.equal(rec.outcome, 'fit_with_restrictions');
+  assert.ok(rec.finalised_at);
+
+  // Emailed to the patient with both PDFs, protected with their date of birth.
+  assert.equal(ctx.mail.length, 1);
+  assert.equal(ctx.mail[0].to, 'pat@test.io');
+  assert.deepEqual(ctx.mail[0].attachments.map((a) => a.filename), ['FTG-CONS01-medical-report.pdf', 'FTG-CONS01-certificate.pdf']);
+  assert.match(ctx.mail[0].attachments[0].content.toString('latin1'), /\/Encrypt/);
+  assert.match(ctx.mail[0].text, /date of birth as DDMMYYYY/);
+  assert.match(rec.email_status, /Sent with attachments/);
+
+  // The doctor, the patient and an admin can open the documents; another patient can't.
+  const binary = (r, cb) => { const chunks = []; r.on('data', (c) => chunks.push(c)); r.on('end', () => cb(null, Buffer.concat(chunks))); };
+  const viewers = [['/doctor', doc], ['/patient', await login(ctx.app, 'pat@test.io')], ['/admin', await login(ctx.app, 'admin@test.io')]];
+  for (const [area, agent] of viewers) {
+    for (const name of ['report.pdf', 'certificate.pdf']) {
+      const res = await agent.get(`${area}/appointments/${appt.id}/${name}`).buffer(true).parse(binary);
+      assert.equal(res.status, 200, `${area} ${name}`);
+      assert.equal(res.headers['content-type'], 'application/pdf');
+      assert.equal(res.body.subarray(0, 5).toString(), '%PDF-');
+    }
+  }
+  const other = await login(ctx.app, 'pat2@test.io');
+  assert.equal((await other.get(`/patient/appointments/${appt.id}/report.pdf`)).status, 404);
+
+  // The patient's page shows the outcome and download links.
+  const page = await (await login(ctx.app, 'pat@test.io')).get(`/patient/appointments/${appt.id}`);
+  assert.match(page.text, /Fit with restrictions/);
+  assert.match(page.text, /certificate\.pdf/);
+
+  // Correcting the record keeps it complete and marks it as amended.
+  await doc.post$(`${url}/consultation`, { ...full, action: 'amend', outcome: 'fit', restrictions: '' });
+  rec = await ctx.db.one('SELECT * FROM consultations WHERE appointment_id = $1', [appt.id]);
+  assert.equal(rec.outcome, 'fit');
+  assert.ok(rec.amended_at);
 });

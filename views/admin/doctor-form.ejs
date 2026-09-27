@@ -29,6 +29,7 @@
         <div class="field"><label for="phone">Phone</label><input id="phone" name="phone" type="tel" value="<%= doctor.phone || '' %>"></div>
         <div class="field"><label for="specialty">Specialty</label><input id="specialty" name="specialty" type="text" value="<%= doctor.specialty || '' %>" placeholder="GP, Occupational health…"></div>
       </div>
+      <div class="field"><label for="reg">Registration number <span class="hint">(e.g. GMC number – printed on reports and certificates)</span></label><input id="reg" name="registration_number" type="text" value="<%= doctor.registration_number || '' %>"></div>
       <div class="field"><label for="bio">Bio</label><textarea id="bio" name="bio"><%= doctor.bio || '' %></textarea></div>
       <% if (!doctor.id) { %>
         <div class="field"><label for="password">Temporary password <span class="hint">(leave blank to generate one; they must change it at first sign-in)</span></label><input id="password" name="password" type="text" minlength="8" autocomplete="off"></div>

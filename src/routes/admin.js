@@ -9,6 +9,8 @@ const { createRepeating } = require('./doctor');
 const { audit } = require('../services/audit');
 const time = require('../time');
 const { backUrl } = require('../util');
+const consultation = require('../services/consultation');
+const { consultationRoutes } = require('./consultation');
 
 /** Signs a user out everywhere by deleting their stored sessions. */
 async function endSessions(db, userId) {
@@ -238,9 +240,11 @@ module.exports = (db) => {
   async function saveDoctorSettings(c, doctorId, body) {
     const perms = Object.keys(DOCTOR_PERMISSIONS);
     await c.query(
-      `UPDATE doctor_profiles SET specialty = $2, bio = $3, ${perms.map((p, i) => `${p} = $${i + 4}`).join(', ')}
+      `UPDATE doctor_profiles SET specialty = $2, bio = $3, registration_number = $4,
+              ${perms.map((p, i) => `${p} = $${i + 5}`).join(', ')}
         WHERE user_id = $1`,
-      [doctorId, text(body.specialty, 200) || null, text(body.bio) || null, ...perms.map((p) => bool(body[p]))]);
+      [doctorId, text(body.specialty, 200) || null, text(body.bio) || null, text(body.registration_number, 50) || null,
+        ...perms.map((p) => bool(body[p]))]);
     const clinicIds = [].concat(body.clinic_ids || []).map(id).filter(Boolean);
     await c.query('DELETE FROM doctor_clinics WHERE doctor_id = $1', [doctorId]);
     for (const cid of clinicIds) {
@@ -420,7 +424,10 @@ module.exports = (db) => {
     const log = await db.all(
       `SELECT l.*, u.name AS user_name FROM audit_log l LEFT JOIN users u ON u.id = l.user_id
         WHERE l.entity = 'appointment' AND l.entity_id = $1 ORDER BY l.created_at`, [appt.id]);
-    res.render('admin/appointment', { title: `Appointment ${appt.reference}`, appt, payments, log });
+    const record = await consultation.load(db, appt.id);
+    res.render('admin/appointment', {
+      title: `Appointment ${appt.reference}`, appt, payments, log, record, sections: consultation.SECTIONS,
+    });
   });
 
   router.post('/appointments/:id/cancel', async (req, res) => {
@@ -445,23 +452,10 @@ module.exports = (db) => {
     res.redirect(backUrl(req, '/admin/appointments'));
   });
 
-  router.post('/appointments/:id/complete', async (req, res) => {
-    await bookings.complete(db, {
-      appointmentId: id(req.params.id), actorId: req.user.id,
-      notes: text(req.body.doctor_notes, 5000), result: text(req.body.result_summary, 5000),
-    });
-    req.flash('success', 'Appointment completed.');
-    res.redirect(`/admin/appointments/${id(req.params.id)}`);
-  });
-
-  router.post('/appointments/:id/results', async (req, res) => {
-    const { rowCount } = await db.query(
-      `UPDATE appointments SET doctor_notes = $2, result_summary = $3 WHERE id = $1 AND status = 'completed'`,
-      [id(req.params.id), text(req.body.doctor_notes, 5000) || null, text(req.body.result_summary, 5000) || null]);
-    if (!rowCount) throw new ValidationError('Only completed appointments have results to edit.');
-    await audit(db, req.user.id, 'appointment.edit_results', 'appointment', id(req.params.id));
-    req.flash('success', 'Results updated.');
-    res.redirect(`/admin/appointments/${id(req.params.id)}`);
+  consultationRoutes(router, db, {
+    base: '/admin',
+    findAppointment: (req, id) => db.one('SELECT id, status FROM appointments WHERE id = $1', [id]),
+    canEdit: () => true,
   });
 
   // ---------- Availability (for any doctor) ----------

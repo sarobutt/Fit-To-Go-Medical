@@ -40,6 +40,15 @@ module.exports = {
   stripeSecretKey: env.STRIPE_SECRET_KEY,
   stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET,
 
+  // Outgoing email (for sending reports to patients). Leave SMTP_HOST empty to turn email off.
+  smtp: {
+    host: env.SMTP_HOST,
+    port: parseInt(env.SMTP_PORT || '587', 10),
+    user: env.SMTP_USER,
+    pass: env.SMTP_PASS,
+    from: env.MAIL_FROM || `${env.SITE_NAME || 'Fit to go medical'} <no-reply@example.com>`,
+  },
+
   // Stripe Checkout sessions last at least 30 minutes, so the slot is held that long.
   holdMinutes: 30,
   // Staff (doctors & admins) are signed out after this much inactivity.

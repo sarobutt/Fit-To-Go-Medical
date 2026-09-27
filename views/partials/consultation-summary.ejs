@@ -1,0 +1,12 @@
+<%# Read-only consultation record + document links. Needs: record, docsBase, appt %>
+<% const rows = consultationSummary((record && record.data) || {}); %>
+<% if (record && record.finalised_at) { %>
+  <div class="doc-links row">
+    <a class="btn" href="<%= docsBase %>/appointments/<%= appt.id %>/certificate.pdf" target="_blank" rel="noopener">Certificate (PDF)</a>
+    <a class="btn secondary" href="<%= docsBase %>/appointments/<%= appt.id %>/report.pdf" target="_blank" rel="noopener">Full medical report (PDF)</a>
+  </div>
+<% } %>
+<% for (const section of rows) { %>
+  <h3 class="summary-title"><%= section.title %></h3>
+  <dl class="details"><% for (const [label, value] of section.rows) { %><dt><%= label %></dt><dd><%= value %></dd><% } %></dl>
+<% } %>

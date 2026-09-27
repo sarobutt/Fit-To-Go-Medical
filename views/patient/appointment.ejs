@@ -36,11 +36,18 @@
   <div class="stack">
     <div class="card">
       <h2>Results</h2>
-      <% if (appt.status === 'completed') { %>
+      <% if (appt.status === 'completed' && record && record.finalised_at) { %>
+        <% if (record.outcome) { %><div class="outcome-banner">Outcome: <%= OUTCOMES[record.outcome] %></div><% } %>
+        <% if (appt.result_summary) { %><p><%= appt.result_summary %></p><% } %>
+        <div class="row">
+          <a class="btn" href="/patient/appointments/<%= appt.id %>/certificate.pdf" target="_blank" rel="noopener">Download certificate (PDF)</a>
+          <a class="btn secondary" href="/patient/appointments/<%= appt.id %>/report.pdf" target="_blank" rel="noopener">Download full report (PDF)</a>
+        </div>
+        <% if (appt.turnaround) { %><p class="small muted" style="margin-top:12px">Typical turnaround for lab results: <%= appt.turnaround %>.</p><% } %>
+      <% } else if (appt.status === 'completed') { %>
         <p><%= appt.result_summary || 'Your doctor has not added a result summary yet.' %></p>
-        <% if (appt.turnaround) { %><p class="small muted">Typical turnaround for full results: <%= appt.turnaround %>.</p><% } %>
       <% } else { %>
-        <p class="muted">Results will appear here after your appointment.</p>
+        <p class="muted">Your results, medical report and certificate will appear here after your appointment.</p>
       <% } %>
     </div>
     <div class="card flush">
