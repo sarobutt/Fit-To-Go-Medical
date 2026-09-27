@@ -1,0 +1,16 @@
+<%- include('partials/header') %>
+<div class="page-head"><h1>Our clinics</h1></div>
+<div class="grid grid-2">
+  <% for (const c of clinics) { %>
+    <div class="card">
+      <h2><%= c.name %></h2>
+      <dl class="details">
+        <dt>Address</dt><dd><%= c.address %>, <%= c.city %></dd>
+        <% if (c.phone) { %><dt>Phone</dt><dd><a href="tel:<%= c.phone %>"><%= c.phone %></a></dd><% } %>
+        <% if (c.opening_hours) { %><dt>Hours</dt><dd><%= c.opening_hours %></dd><% } %>
+      </dl>
+      <p style="margin-top:14px"><a class="btn small" href="/patient/book?clinic=<%= c.id %>">Book at this clinic</a></p>
+    </div>
+  <% } %>
+</div>
+<%- include('partials/footer') %>

@@ -1,0 +1,62 @@
+<%- include('../partials/header') %>
+<div class="page-head"><div><h1>Overview</h1><p class="muted">How <%= siteName %> is doing across all clinics.</p></div></div>
+<div class="grid grid-4" style="margin-bottom:16px">
+  <div class="card stat"><span class="label">Revenue this month</span><span class="value"><%= money(kpis.revenue_month) %></span><span class="sub"><%= money(kpis.refunded_month) %> refunded</span></div>
+  <div class="card stat"><span class="label">Booked, next 7 days</span><span class="value"><%= kpis.upcoming_7d %></span><span class="sub">confirmed appointments</span></div>
+  <div class="card stat"><span class="label">Seen today</span><span class="value"><%= kpis.today_seen %> / <%= kpis.today_total %></span><span class="sub">checked in or completed</span></div>
+  <div class="card stat"><span class="label">Patients</span><span class="value"><%= kpis.patients %></span><span class="sub">+<%= kpis.new_patients %> in the last 30 days</span></div>
+</div>
+
+<div class="grid grid-2" style="margin-bottom:16px">
+  <div class="card">
+    <% const max = Math.max(1, ...daily.map((d) => d.n)); %>
+    <h2>New bookings per day</h2>
+    <p class="small muted" style="margin:0">Last 14 days · paid bookings by the day they were made</p>
+    <div class="bars" role="img" aria-label="Bookings per day over the last 14 days">
+      <% for (const d of daily) { %>
+        <div class="bar-col" tabindex="0" aria-label="<%= time.formatDate(d.day) %>: <%= d.n %> bookings">
+          <span class="tip"><%= time.formatDate(d.day).split(' ').slice(0, 3).join(' ') %> · <%= d.n %></span>
+          <div class="bar" style="height:<%= (d.n / max) * 100 %>%"></div>
+        </div>
+      <% } %>
+    </div>
+    <div class="bar-axis" aria-hidden="true"><% for (const d of daily) { %><span><%= d.day.slice(8, 10) %></span><% } %></div>
+    <details class="small" style="margin-top:8px"><summary>Show as table</summary>
+      <table><tbody><% for (const d of daily) { %><tr><td><%= time.formatDate(d.day) %></td><td class="num"><%= d.n %></td></tr><% } %></tbody></table>
+    </details>
+  </div>
+  <div class="card flush">
+    <h2>Top tests <span class="small muted">(30 days)</span></h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Test</th><th class="num">Bookings</th><th class="num">Revenue</th></tr></thead>
+      <tbody><% for (const t of topTests) { %><tr><td><%= t.name %></td><td class="num"><%= t.n %></td><td class="num"><%= money(t.revenue) %></td></tr><% } %></tbody>
+    </table></div>
+  </div>
+</div>
+
+<div class="card flush" style="margin-bottom:16px">
+  <div class="card-head"><h2>Clinic performance</h2><span class="small muted" style="padding-right:20px">Last 30 days + next 7 days</span></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Clinic</th><th class="num">Slots</th><th class="num">Booked</th><th>Utilisation</th><th class="num">Completed</th><th class="num">Cancelled</th><th class="num">No-shows</th><th class="num">Revenue</th></tr></thead>
+    <tbody>
+    <% for (const c of clinics) { const util = c.slots ? Math.round((c.booked / c.slots) * 100) : 0; %>
+      <tr>
+        <td><a href="/admin/clinics/<%= c.id %>"><%= c.name %></a> <% if (!c.is_active) { %><span class="badge inactive">Closed</span><% } %><div class="small muted"><%= c.city %></div></td>
+        <td class="num"><%= c.slots %></td>
+        <td class="num"><%= c.booked %></td>
+        <td><div class="row"><div class="meter" style="flex:1"><span style="width:<%= Math.min(util, 100) %>%"></span></div><span class="small num" style="min-width:3ch"><%= util %>%</span></div></td>
+        <td class="num"><%= c.completed %></td>
+        <td class="num"><%= c.cancelled %></td>
+        <td class="num"><%= c.no_shows %></td>
+        <td class="num"><%= money(c.revenue) %></td>
+      </tr>
+    <% } %>
+    </tbody>
+  </table></div>
+</div>
+
+<div class="card flush">
+  <div class="card-head"><h2>Today across all clinics</h2><a class="small" style="padding-right:20px" href="/admin/appointments?from=<%= time.todayLocal() %>&to=<%= time.todayLocal() %>">Open in appointments →</a></div>
+  <%- include('_appointments-table', { appointments: todayList }) %>
+</div>
+<%- include('../partials/footer') %>

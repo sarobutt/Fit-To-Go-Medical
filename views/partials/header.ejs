@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= typeof title !== 'undefined' ? title + ' · ' : '' %><%= siteName %></title>
+  <meta name="description" content="<%= siteName %> – book medical tests online at a clinic near you.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">✚</span><%= siteName %></a>
+    <nav class="nav" aria-label="Main">
+      <% const nav = (href, label) => `<a href="${href}" class="${(href === '/' + (user ? user.role : '') ? path === href : path.startsWith(href)) ? 'active' : ''}">${label}</a>`; %>
+      <% if (!user) { %>
+        <%- nav('/tests', 'Tests & prices') %>
+        <%- nav('/clinics', 'Clinics') %>
+        <%- nav('/login', 'Sign in') %>
+        <a class="btn small" href="/register">Book a test</a>
+      <% } else if (user.role === 'patient') { %>
+        <%- nav('/patient', 'Dashboard') %>
+        <%- nav('/patient/book', 'Book a test') %>
+        <%- nav('/patient/appointments', 'My appointments') %>
+        <%- nav('/patient/profile', 'My details') %>
+      <% } else if (user.role === 'doctor') { %>
+        <%- nav('/doctor', 'Clinic day') %>
+        <%- nav('/doctor/availability', 'Availability') %>
+        <%- nav('/doctor/account', 'Account') %>
+      <% } else if (user.role === 'admin') { %>
+        <%- nav('/admin', 'Overview') %>
+        <%- nav('/admin/appointments', 'Appointments') %>
+        <%- nav('/admin/patients', 'Patients') %>
+        <%- nav('/admin/doctors', 'Doctors') %>
+        <%- nav('/admin/availability', 'Availability') %>
+        <%- nav('/admin/clinics', 'Clinics') %>
+        <%- nav('/admin/tests', 'Tests') %>
+        <%- nav('/admin/payments', 'Payments') %>
+        <%- nav('/admin/admins', 'Admins') %>
+        <%- nav('/admin/audit', 'Audit') %>
+      <% } %>
+      <% if (user) { %>
+        <span class="role-pill" title="Signed in as <%= user.email %>"><%= user.role %></span>
+        <form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn small secondary">Sign out</button></form>
+      <% } %>
+    </nav>
+  </div>
+</header>
+<main class="container" id="main">
+  <% for (const f of flash) { %><div class="flash <%= f.type %>" role="<%= f.type === 'error' ? 'alert' : 'status' %>"><%= f.message %></div><% } %>

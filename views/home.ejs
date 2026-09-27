@@ -1,0 +1,47 @@
+<%- include('partials/header') %>
+<section class="hero">
+  <h1>Medical tests, booked in minutes.</h1>
+  <p>Choose your test, pick a clinic and a time that suits you, and pay securely online. Our doctors will take it from there.</p>
+  <div class="row">
+    <a class="btn" href="<%= user && user.role === 'patient' ? '/patient/book' : '/register' %>">Book a test</a>
+    <a class="btn ghost" href="/tests">See tests & prices</a>
+  </div>
+</section>
+
+<section class="stack">
+  <h2>How it works</h2>
+  <div class="steps">
+    <div class="card"><h3>Choose your test</h3><p class="muted">From fit-to-fly and pre-employment medicals to blood tests.</p></div>
+    <div class="card"><h3>Pick a clinic & time</h3><p class="muted">See live availability from our doctors and grab a slot.</p></div>
+    <div class="card"><h3>Pay securely</h3><p class="muted">Card, Apple Pay or Google Pay through Stripe. Instant confirmation.</p></div>
+    <div class="card"><h3>Check in & get results</h3><p class="muted">Show your reference at reception. Results appear in your account.</p></div>
+  </div>
+</section>
+
+<section class="stack" style="margin-top:32px">
+  <div class="page-head"><h2>Popular tests</h2><a href="/tests">All tests →</a></div>
+  <div class="grid grid-3">
+    <% for (const t of tests.slice(0, 6)) { %>
+      <div class="card">
+        <h3><%= t.name %></h3>
+        <p class="muted small"><%= t.description %></p>
+        <div class="row"><span class="price"><%= money(t.price_pence) %></span><span class="spacer"></span><span class="muted small"><%= t.duration_minutes %> min</span></div>
+      </div>
+    <% } %>
+    <% if (!tests.length) { %><p class="muted">Tests will appear here soon.</p><% } %>
+  </div>
+</section>
+
+<section class="stack" style="margin-top:32px">
+  <h2>Our clinics</h2>
+  <div class="grid grid-3">
+    <% for (const c of clinics) { %>
+      <div class="card">
+        <h3><%= c.name %></h3>
+        <p class="muted small"><%= c.address %>, <%= c.city %></p>
+        <% if (c.opening_hours) { %><p class="small"><%= c.opening_hours %></p><% } %>
+      </div>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/footer') %>

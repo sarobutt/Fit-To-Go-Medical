@@ -1,0 +1,58 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <div><p class="muted small"><a href="/patient/appointments">← My appointments</a></p><h1><%= appt.test_name %></h1><p class="muted">Reference <strong><%= appt.reference %></strong></p></div>
+  <%- include('../partials/status', { status: appt.status }) %>
+</div>
+<div class="grid grid-2">
+  <div class="card">
+    <h2>Appointment</h2>
+    <dl class="details">
+      <dt>When</dt><dd><%= time.formatDateTime(appt.starts_at) %> – <%= appt.ends_at.slice(11, 16) %></dd>
+      <dt>Where</dt><dd><%= appt.clinic_name %><br><span class="small muted"><%= appt.clinic_address %>, <%= appt.clinic_city %></span></dd>
+      <% if (appt.clinic_phone) { %><dt>Clinic phone</dt><dd><a href="tel:<%= appt.clinic_phone %>"><%= appt.clinic_phone %></a></dd><% } %>
+      <dt>Doctor</dt><dd><%= appt.doctor_name %></dd>
+      <dt>Price</dt><dd><%= money(appt.price_pence) %></dd>
+      <% if (appt.cancel_reason) { %><dt>Cancelled</dt><dd><%= appt.cancel_reason %></dd><% } %>
+    </dl>
+    <% if (appt.preparation && ['confirmed', 'pending_payment'].includes(appt.status)) { %>
+      <p class="small" style="margin-top:16px"><strong>Before you come:</strong> <%= appt.preparation %></p>
+    <% } %>
+    <% if (appt.status === 'confirmed') { %>
+      <p class="small muted" style="margin-top:16px">Please arrive 10 minutes early and show your reference at reception to check in.</p>
+    <% } %>
+    <div class="row" style="margin-top:16px">
+      <% if (appt.status === 'pending_payment') { %>
+        <form method="post" action="/patient/appointments/<%= appt.id %>/pay" class="inline-form"><%- include('../partials/csrf') %><button class="btn">Complete payment</button></form>
+      <% } %>
+      <% if (canCancel) { %>
+        <form method="post" action="/patient/appointments/<%= appt.id %>/cancel" class="inline-form" data-confirm="Cancel this appointment?<%= appt.status === 'confirmed' ? ' You will receive a full refund.' : '' %>">
+          <%- include('../partials/csrf') %><button class="btn danger">Cancel appointment</button>
+        </form>
+      <% } else if (appt.status === 'confirmed') { %>
+        <p class="small muted">Online cancellation closes <%= cancellationHours %> hours before your appointment. Please call the clinic to make changes.</p>
+      <% } %>
+    </div>
+  </div>
+  <div class="stack">
+    <div class="card">
+      <h2>Results</h2>
+      <% if (appt.status === 'completed') { %>
+        <p><%= appt.result_summary || 'Your doctor has not added a result summary yet.' %></p>
+        <% if (appt.turnaround) { %><p class="small muted">Typical turnaround for full results: <%= appt.turnaround %>.</p><% } %>
+      <% } else { %>
+        <p class="muted">Results will appear here after your appointment.</p>
+      <% } %>
+    </div>
+    <div class="card flush">
+      <h2>Payments</h2>
+      <% if (!payments.length) { %><div class="empty">No payments yet.</div><% } else { %>
+      <div class="table-wrap"><table><tbody>
+        <% for (const p of payments) { %>
+          <tr><td><%= time.formatDateTime(p.paid_at || p.created_at) %></td><td class="num"><%= money(p.amount_pence) %></td><td class="right"><span class="badge <%= p.status %>"><%= p.status %></span></td></tr>
+        <% } %>
+      </tbody></table></div>
+      <% } %>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

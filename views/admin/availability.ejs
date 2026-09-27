@@ -1,0 +1,33 @@
+<%- include('../partials/header') %>
+<div class="page-head"><div><h1>Availability</h1><p class="muted">Every doctor's upcoming sessions. You can publish sessions on a doctor's behalf.</p></div></div>
+<div class="grid grid-2" style="align-items:start">
+  <div class="card flush">
+    <form method="get" class="filters" style="padding:16px 20px 0">
+      <div class="field"><label for="fd">Doctor</label><select id="fd" name="doctor" data-autosubmit><option value="">All</option><% for (const d of doctors) { %><option value="<%= d.id %>" <%= filters.doctor === d.id ? 'selected' : '' %>><%= d.name %></option><% } %></select></div>
+      <div class="field"><label for="fc">Clinic</label><select id="fc" name="clinic" data-autosubmit><option value="">All</option><% for (const c of clinics) { %><option value="<%= c.id %>" <%= filters.clinic === c.id ? 'selected' : '' %>><%= c.name %></option><% } %></select></div>
+      <noscript><button class="btn secondary">Filter</button></noscript>
+    </form>
+    <% if (!sessions.length) { %><div class="empty">No upcoming sessions.</div><% } else { %>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Date</th><th>Time</th><th>Doctor</th><th>Clinic</th><th class="num">Booked</th><th></th></tr></thead>
+      <tbody>
+      <% for (const s of sessions) { %>
+        <tr>
+          <td class="nowrap"><%= time.formatDate(s.date) %></td>
+          <td class="nowrap"><%= s.start_time %>–<%= s.end_time %></td>
+          <td><%= s.doctor_name %></td>
+          <td><%= s.clinic_name %></td>
+          <td class="num"><%= s.booked %> / <%= s.open_slots %></td>
+          <td class="right"><a href="/admin/availability/<%= s.id %>">Slots</a></td>
+        </tr>
+      <% } %>
+      </tbody>
+    </table></div>
+    <% } %>
+  </div>
+  <div class="card">
+    <h2>Publish a session</h2>
+    <%- include('../partials/availability-form', { action: '/admin/availability', doctors, clinics }) %>
+  </div>
+</div>
+<%- include('../partials/footer') %>

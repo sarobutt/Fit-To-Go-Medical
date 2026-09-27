@@ -1,0 +1,78 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <div><p class="muted small"><a href="/doctor?date=<%= appt.starts_at.slice(0, 10) %>">← Clinic day</a></p><h1><%= appt.patient_name %></h1><p class="muted"><%= appt.test_name %> · <%= appt.reference %></p></div>
+  <%- include('../partials/status', { status: appt.status }) %>
+</div>
+<div class="grid grid-2">
+  <div class="stack">
+    <div class="card">
+      <h2>Patient</h2>
+      <dl class="details">
+        <dt>Name</dt><dd><%= appt.patient_name %></dd>
+        <dt>Date of birth</dt><dd><%= appt.date_of_birth ? time.formatDate(appt.date_of_birth) : '—' %></dd>
+        <dt>Email</dt><dd><%= appt.patient_email %></dd>
+        <dt>Phone</dt><dd><%= appt.patient_phone || '—' %></dd>
+      </dl>
+    </div>
+    <div class="card">
+      <h2>Appointment</h2>
+      <dl class="details">
+        <dt>When</dt><dd><%= time.formatDateTime(appt.starts_at) %></dd>
+        <dt>Clinic</dt><dd><%= appt.clinic_name %></dd>
+        <dt>Test</dt><dd><%= appt.test_name %></dd>
+        <% if (appt.checked_in_at) { %><dt>Checked in</dt><dd><%= time.formatDateTime(appt.checked_in_at) %></dd><% } %>
+        <% if (appt.cancel_reason) { %><dt>Cancelled</dt><dd><%= appt.cancel_reason %></dd><% } %>
+      </dl>
+      <div class="row" style="margin-top:16px">
+        <% if (appt.status === 'confirmed' && user.can_check_in) { %>
+          <form method="post" action="/doctor/appointments/<%= appt.id %>/check-in" class="inline-form"><%- include('../partials/csrf') %><button class="btn">Check in patient</button></form>
+          <form method="post" action="/doctor/appointments/<%= appt.id %>/no-show" class="inline-form" data-confirm="Mark as no-show?"><%- include('../partials/csrf') %><button class="btn secondary">No-show</button></form>
+        <% } %>
+      </div>
+      <% if (['confirmed', 'pending_payment'].includes(appt.status) && user.can_cancel_appointments) { %>
+        <form method="post" action="/doctor/appointments/<%= appt.id %>/cancel" style="margin-top:16px" data-confirm="Cancel and refund this appointment?">
+          <%- include('../partials/csrf') %>
+          <div class="field"><label for="reason">Cancellation reason</label><input id="reason" type="text" name="reason" placeholder="Told to patient"></div>
+          <button class="btn danger">Cancel & refund</button>
+        </form>
+      <% } %>
+    </div>
+  </div>
+  <div class="stack">
+    <div class="card">
+      <h2>Consultation</h2>
+      <% if (appt.status === 'checked_in') { %>
+        <% if (user.can_record_results) { %>
+          <form method="post" action="/doctor/appointments/<%= appt.id %>/complete">
+            <%- include('../partials/csrf') %>
+            <div class="field"><label for="notes">Clinical notes <span class="hint">(internal – not shown to patient)</span></label><textarea id="notes" name="doctor_notes"></textarea></div>
+            <div class="field"><label for="result">Result summary <span class="hint">(shown to patient)</span></label><textarea id="result" name="result_summary"></textarea></div>
+            <button class="btn">Complete appointment</button>
+          </form>
+        <% } else { %>
+          <p class="muted">You don't have permission to record results.</p>
+        <% } %>
+      <% } else if (appt.status === 'completed') { %>
+        <h3>Result summary</h3><p><%= appt.result_summary || '—' %></p>
+        <h3>Clinical notes</h3><p><%= appt.doctor_notes || '—' %></p>
+      <% } else { %>
+        <p class="muted">Check the patient in to start the consultation.</p>
+      <% } %>
+    </div>
+    <div class="card flush">
+      <h2>Previous visits</h2>
+      <% if (history === null) { %>
+        <div class="empty">You don't have permission to view patient history.</div>
+      <% } else if (!history.length) { %>
+        <div class="empty">No previous completed visits.</div>
+      <% } else { %>
+        <div class="table-wrap"><table><tbody>
+          <% for (const h of history) { %>
+            <tr><td class="nowrap"><%= time.formatDate(h.starts_at) %></td><td><strong><%= h.test_name %></strong><div class="small"><%= h.result_summary || '' %></div><% if (h.doctor_notes) { %><div class="small muted"><%= h.doctor_notes %></div><% } %></td></tr>
+          <% } %>
+        </tbody></table></div>
+      <% } %>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,23 @@
+<%- include('../partials/header') %>
+<div class="page-head"><div><h1>Payments</h1><p class="muted">All card payments are processed by Stripe. Refunds are issued from an appointment's page.</p></div></div>
+<div class="grid grid-3" style="margin-bottom:16px">
+  <div class="card stat"><span class="label">Collected (all time)</span><span class="value"><%= money(totals.paid) %></span></div>
+  <div class="card stat"><span class="label">Refunded (all time)</span><span class="value"><%= money(totals.refunded) %></span></div>
+</div>
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Date</th><th>Reference</th><th>Patient</th><th class="num">Amount</th><th>Status</th><th>Stripe ID</th></tr></thead>
+  <tbody>
+  <% for (const p of payments) { %>
+    <tr>
+      <td class="nowrap"><%= time.formatDateTime(p.paid_at || p.created_at) %></td>
+      <td><a href="/admin/appointments/<%= p.appointment_id %>"><%= p.reference %></a></td>
+      <td><%= p.patient_name %></td>
+      <td class="num"><%= money(p.amount_pence) %></td>
+      <td><span class="badge <%= p.status %>"><%= p.status %></span></td>
+      <td class="small muted"><%= p.payment_intent_id || p.checkout_session_id %></td>
+    </tr>
+  <% } %>
+  <% if (!payments.length) { %><tr><td colspan="6" class="empty">No payments yet.</td></tr><% } %>
+  </tbody>
+</table></div></div>
+<%- include('../partials/footer') %>

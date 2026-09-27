@@ -1,0 +1,18 @@
+<%- include('../partials/header') %>
+<div class="page-head"><h1>Clinics</h1><a class="btn" href="/admin/clinics/new">Add clinic</a></div>
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Clinic</th><th>Address</th><th>Phone</th><th class="num">Doctors</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  <% for (const c of clinics) { %>
+    <tr>
+      <td><a href="/admin/clinics/<%= c.id %>"><strong><%= c.name %></strong></a></td>
+      <td><%= c.address %>, <%= c.city %></td>
+      <td><%= c.phone || '—' %></td>
+      <td class="num"><%= c.doctors %></td>
+      <td><span class="badge <%= c.is_active ? 'active' : 'inactive' %>"><%= c.is_active ? 'Open' : 'Closed' %></span></td>
+      <td class="right"><form method="post" action="/admin/clinics/<%= c.id %>/toggle" class="inline-form" data-confirm="<%= c.is_active ? 'Close this clinic to new bookings?' : 'Reopen this clinic?' %>"><%- include('../partials/csrf') %><button class="btn small secondary"><%= c.is_active ? 'Close' : 'Reopen' %></button></form></td>
+    </tr>
+  <% } %>
+  </tbody>
+</table></div></div>
+<%- include('../partials/footer') %>

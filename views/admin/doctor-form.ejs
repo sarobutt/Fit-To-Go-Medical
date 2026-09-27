@@ -1,0 +1,56 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <div><p class="muted small"><a href="/admin/doctors">← Doctors</a></p><h1><%= doctor.id ? doctor.name : 'Add a doctor' %></h1>
+  <% if (doctor.id) { %><span class="badge <%= doctor.is_active ? 'active' : 'inactive' %>"><%= doctor.is_active ? 'Active' : 'Deactivated' %></span><% } %></div>
+  <% if (doctor.id) { %>
+    <div class="row">
+      <a class="btn secondary" href="/admin/availability?doctor=<%= doctor.id %>">Availability</a>
+      <a class="btn secondary" href="/admin/appointments?doctor=<%= doctor.id %>">Appointments</a>
+      <form method="post" action="/admin/users/<%= doctor.id %>/reset-password" class="inline-form" data-confirm="Generate a new temporary password?"><%- include('../partials/csrf') %><button class="btn secondary">Reset password</button></form>
+      <form method="post" action="/admin/users/<%= doctor.id %>/toggle" class="inline-form" data-confirm="<%= doctor.is_active ? 'Deactivate this doctor? They will be signed out and their slots hidden from booking.' : 'Reactivate this doctor?' %>"><%- include('../partials/csrf') %><button class="btn <%= doctor.is_active ? 'danger' : '' %>"><%= doctor.is_active ? 'Deactivate' : 'Reactivate' %></button></form>
+    </div>
+  <% } %>
+</div>
+<% if (stats) { %>
+<div class="grid grid-3" style="margin-bottom:16px">
+  <div class="card stat"><span class="label">Upcoming appointments</span><span class="value"><%= stats.upcoming %></span></div>
+  <div class="card stat"><span class="label">Completed</span><span class="value"><%= stats.completed %></span></div>
+  <div class="card stat"><span class="label">No-shows</span><span class="value"><%= stats.no_shows %></span></div>
+</div>
+<% } %>
+<form method="post" action="/admin/doctors<%= doctor.id ? '/' + doctor.id : '' %>">
+  <%- include('../partials/csrf') %>
+  <div class="grid grid-2" style="align-items:start">
+    <div class="card">
+      <h2>Details</h2>
+      <div class="field"><label for="name">Full name</label><input id="name" name="name" type="text" value="<%= doctor.name || '' %>" required></div>
+      <div class="field"><label for="email">Email (sign-in)</label><input id="email" name="email" type="email" value="<%= doctor.email || '' %>" required></div>
+      <div class="form-row">
+        <div class="field"><label for="phone">Phone</label><input id="phone" name="phone" type="tel" value="<%= doctor.phone || '' %>"></div>
+        <div class="field"><label for="specialty">Specialty</label><input id="specialty" name="specialty" type="text" value="<%= doctor.specialty || '' %>" placeholder="GP, Occupational health…"></div>
+      </div>
+      <div class="field"><label for="bio">Bio</label><textarea id="bio" name="bio"><%= doctor.bio || '' %></textarea></div>
+      <% if (!doctor.id) { %>
+        <div class="field"><label for="password">Initial password <span class="hint">(leave blank to generate one)</span></label><input id="password" name="password" type="text" minlength="8" autocomplete="off"></div>
+      <% } %>
+    </div>
+    <div class="stack">
+      <div class="card">
+        <h2>Permissions</h2>
+        <p class="small muted">Control what this doctor can do. Changes apply immediately.</p>
+        <% for (const [key, label] of Object.entries(permissions)) { %>
+          <label class="checkbox"><input type="checkbox" name="<%= key %>" <%= doctor[key] ? 'checked' : '' %>> <%= label %></label>
+        <% } %>
+      </div>
+      <div class="card">
+        <h2>Clinics</h2>
+        <p class="small muted">The doctor can only publish slots at clinics ticked here.</p>
+        <% for (const c of clinics) { %>
+          <label class="checkbox"><input type="checkbox" name="clinic_ids" value="<%= c.id %>" <%= assigned.includes(c.id) ? 'checked' : '' %>> <%= c.name %><%= c.is_active ? '' : ' (closed)' %></label>
+        <% } %>
+      </div>
+    </div>
+  </div>
+  <p style="margin-top:16px"><button class="btn"><%= doctor.id ? 'Save changes' : 'Create doctor' %></button></p>
+</form>
+<%- include('../partials/footer') %>

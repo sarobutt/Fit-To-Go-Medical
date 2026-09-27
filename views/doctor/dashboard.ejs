@@ -1,0 +1,49 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <div><h1><%= isToday ? "Today's patients" : time.formatDate(date) %></h1><p class="muted"><%= time.formatDate(date) %> · check patients in as they arrive</p></div>
+  <form method="get" class="row">
+    <a class="btn small secondary" href="/doctor?date=<%= time.addDays(date, -1) %>" aria-label="Previous day">←</a>
+    <input type="date" name="date" value="<%= date %>" aria-label="Date" style="width:auto">
+    <button class="btn small secondary">Go</button>
+    <a class="btn small secondary" href="/doctor?date=<%= time.addDays(date, 1) %>" aria-label="Next day">→</a>
+    <% if (!isToday) { %><a class="btn small" href="/doctor">Today</a><% } %>
+  </form>
+</div>
+<div class="grid grid-4" style="margin-bottom:16px">
+  <div class="card stat"><span class="label">Waiting to arrive</span><span class="value"><%= counts.waiting %></span></div>
+  <div class="card stat"><span class="label">Checked in</span><span class="value"><%= counts.checked_in %></span></div>
+  <div class="card stat"><span class="label">Completed</span><span class="value"><%= counts.completed %></span></div>
+  <div class="card stat"><span class="label">Free slots</span><span class="value"><%= freeSlots %></span></div>
+</div>
+<div class="card flush">
+  <% if (!appointments.length) { %>
+    <div class="empty">No patients booked for this day. <a href="/doctor/availability">Manage availability</a></div>
+  <% } else { %>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Time</th><th>Patient</th><th>Test</th><th>Clinic</th><th>Status</th><th class="right">Actions</th></tr></thead>
+    <tbody>
+    <% for (const a of appointments) { %>
+      <tr>
+        <td class="nowrap"><strong><%= a.starts_at.slice(11, 16) %></strong></td>
+        <td><a href="/doctor/appointments/<%= a.id %>"><%= a.patient_name %></a><div class="small muted"><%= a.reference %></div></td>
+        <td><%= a.test_name %></td>
+        <td><%= a.clinic_name %></td>
+        <td><%- include('../partials/status', { status: a.status }) %></td>
+        <td class="right"><div class="row" style="justify-content:flex-end">
+          <% if (a.status === 'confirmed' && isToday && user.can_check_in) { %>
+            <form method="post" action="/doctor/appointments/<%= a.id %>/check-in" class="inline-form"><%- include('../partials/csrf') %><button class="btn small">Check in</button></form>
+            <form method="post" action="/doctor/appointments/<%= a.id %>/no-show" class="inline-form" data-confirm="Mark <%= a.patient_name %> as a no-show?"><%- include('../partials/csrf') %><button class="btn small secondary">No-show</button></form>
+          <% } else if (a.status === 'checked_in') { %>
+            <a class="btn small" href="/doctor/appointments/<%= a.id %>">See patient</a>
+          <% } else { %>
+            <a class="btn small secondary" href="/doctor/appointments/<%= a.id %>">Open</a>
+          <% } %>
+        </div></td>
+      </tr>
+    <% } %>
+    </tbody>
+  </table></div>
+  <% } %>
+</div>
+<% if (!user.can_check_in) { %><p class="small muted" style="margin-top:12px">Check-in is switched off for your account. Ask an administrator if you need it.</p><% } %>
+<%- include('../partials/footer') %>

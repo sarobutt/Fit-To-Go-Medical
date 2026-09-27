@@ -1,0 +1,18 @@
+<%- include('../partials/header') %>
+<div class="page-head"><h1>Tests & pricing</h1><a class="btn" href="/admin/tests/new">Add test</a></div>
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Test</th><th class="num">Price</th><th class="num">Duration</th><th class="num">Bookings</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  <% for (const t of tests) { %>
+    <tr>
+      <td><a href="/admin/tests/<%= t.id %>"><strong><%= t.name %></strong></a></td>
+      <td class="num"><%= money(t.price_pence) %></td>
+      <td class="num"><%= t.duration_minutes %> min</td>
+      <td class="num"><%= t.bookings %></td>
+      <td><span class="badge <%= t.is_active ? 'active' : 'inactive' %>"><%= t.is_active ? 'Bookable' : 'Hidden' %></span></td>
+      <td class="right"><form method="post" action="/admin/tests/<%= t.id %>/toggle" class="inline-form"><%- include('../partials/csrf') %><button class="btn small secondary"><%= t.is_active ? 'Hide' : 'Show' %></button></form></td>
+    </tr>
+  <% } %>
+  </tbody>
+</table></div></div>
+<%- include('../partials/footer') %>

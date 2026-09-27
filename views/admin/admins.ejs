@@ -1,0 +1,29 @@
+<%- include('../partials/header') %>
+<div class="page-head"><div><h1>Administrators</h1><p class="muted">Administrators have full access to every part of <%= siteName %>.</p></div></div>
+<div class="grid grid-2" style="align-items:start">
+  <div class="card flush"><div class="table-wrap"><table>
+    <thead><tr><th>Name</th><th>Email</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    <% for (const a of admins) { %>
+      <tr>
+        <td><%= a.name %><%= a.id === user.id ? ' (you)' : '' %></td>
+        <td><%= a.email %></td>
+        <td><span class="badge <%= a.is_active ? 'active' : 'inactive' %>"><%= a.is_active ? 'Active' : 'Inactive' %></span></td>
+        <td class="right"><% if (a.id !== user.id) { %><form method="post" action="/admin/users/<%= a.id %>/toggle" class="inline-form" data-confirm="Change access for <%= a.name %>?"><%- include('../partials/csrf') %><button class="btn small secondary"><%= a.is_active ? 'Deactivate' : 'Reactivate' %></button></form><% } %></td>
+      </tr>
+    <% } %>
+    </tbody>
+  </table></div></div>
+  <div class="card">
+    <h2>Add an administrator</h2>
+    <form method="post" action="/admin/admins">
+      <%- include('../partials/csrf') %>
+      <div class="field"><label for="name">Name</label><input id="name" name="name" type="text" required></div>
+      <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" required></div>
+      <button class="btn">Create administrator</button>
+      <p class="small muted" style="margin-top:8px">A temporary password is shown once after creating.</p>
+    </form>
+  </div>
+</div>
+<div style="margin-top:16px;max-width:560px"><%- include('../partials/password') %></div>
+<%- include('../partials/footer') %>

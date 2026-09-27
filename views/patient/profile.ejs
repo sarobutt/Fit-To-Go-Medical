@@ -1,0 +1,19 @@
+<%- include('../partials/header') %>
+<div class="page-head"><h1>My details</h1></div>
+<div class="grid grid-2">
+  <div class="card">
+    <h2>Personal details</h2>
+    <form method="post" action="/patient/profile">
+      <%- include('../partials/csrf') %>
+      <div class="field"><label for="name">Full name</label><input id="name" name="name" type="text" value="<%= user.name %>" required></div>
+      <div class="field"><label>Email</label><input type="email" value="<%= user.email %>" disabled><span class="hint">Contact the clinic to change your email.</span></div>
+      <div class="form-row">
+        <div class="field"><label for="phone">Phone</label><input id="phone" name="phone" type="tel" value="<%= user.phone || '' %>"></div>
+        <div class="field"><label for="dob">Date of birth</label><input id="dob" name="date_of_birth" type="date" value="<%= user.date_of_birth || '' %>"></div>
+      </div>
+      <button class="btn">Save</button>
+    </form>
+  </div>
+  <%- include('../partials/password') %>
+</div>
+<%- include('../partials/footer') %>

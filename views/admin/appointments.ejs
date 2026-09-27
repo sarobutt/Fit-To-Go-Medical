@@ -1,0 +1,26 @@
+<%- include('../partials/header') %>
+<div class="page-head"><h1>Appointments</h1></div>
+<form method="get" class="filters card">
+  <div class="field"><label for="q">Search</label><input id="q" type="search" name="q" value="<%= filters.q %>" placeholder="Name, email or reference"></div>
+  <div class="field"><label for="status">Status</label><select id="status" name="status" data-autosubmit>
+    <option value="">Any</option>
+    <% for (const [k, v] of Object.entries(STATUS_LABELS)) { %><option value="<%= k %>" <%= filters.status === k ? 'selected' : '' %>><%= v %></option><% } %>
+  </select></div>
+  <div class="field"><label for="clinic">Clinic</label><select id="clinic" name="clinic" data-autosubmit>
+    <option value="">All</option>
+    <% for (const c of clinics) { %><option value="<%= c.id %>" <%= filters.clinic === c.id ? 'selected' : '' %>><%= c.name %></option><% } %>
+  </select></div>
+  <div class="field"><label for="doctor">Doctor</label><select id="doctor" name="doctor" data-autosubmit>
+    <option value="">All</option>
+    <% for (const d of doctors) { %><option value="<%= d.id %>" <%= filters.doctor === d.id ? 'selected' : '' %>><%= d.name %></option><% } %>
+  </select></div>
+  <div class="field"><label for="from">From</label><input id="from" type="date" name="from" value="<%= filters.from %>"></div>
+  <div class="field"><label for="to">To</label><input id="to" type="date" name="to" value="<%= filters.to %>"></div>
+  <button class="btn secondary">Filter</button>
+  <a class="btn secondary" href="/admin/appointments">Reset</a>
+</form>
+<div class="card flush">
+  <%- include('_appointments-table', { appointments }) %>
+</div>
+<p class="small muted" style="margin-top:8px">Showing up to 300 results.</p>
+<%- include('../partials/footer') %>

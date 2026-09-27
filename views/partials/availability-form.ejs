@@ -1,0 +1,36 @@
+<form method="post" action="<%= action %>">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <% if (doctors) { %>
+    <div class="field"><label for="doctor_id">Doctor</label>
+      <select id="doctor_id" name="doctor_id" required>
+        <option value="">Choose…</option>
+        <% for (const d of doctors) { %><option value="<%= d.id %>"><%= d.name %></option><% } %>
+      </select>
+      <span class="hint">The doctor must be assigned to the clinic you choose.</span>
+    </div>
+  <% } %>
+  <div class="field"><label for="clinic_id">Clinic</label>
+    <select id="clinic_id" name="clinic_id" required>
+      <% for (const c of clinics) { %><option value="<%= c.id %>"><%= c.name %></option><% } %>
+    </select>
+  </div>
+  <div class="form-row">
+    <div class="field"><label for="date">Date</label><input id="date" type="date" name="date" min="<%= time.todayLocal() %>" required></div>
+    <div class="field"><label for="repeat">Repeat weekly</label>
+      <select id="repeat" name="repeat_weeks">
+        <option value="0">Just this day</option>
+        <% for (const n of [1, 2, 3, 4, 6, 8, 12]) { %><option value="<%= n %>">+ <%= n %> more week<%= n > 1 ? 's' : '' %></option><% } %>
+      </select>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="field"><label for="start">Start</label><input id="start" type="time" name="start_time" value="09:00" required></div>
+    <div class="field"><label for="end">End</label><input id="end" type="time" name="end_time" value="13:00" required></div>
+    <div class="field"><label for="slot">Slot length</label>
+      <select id="slot" name="slot_minutes">
+        <% for (const m of [10, 15, 20, 30, 45, 60]) { %><option value="<%= m %>" <%= m === 15 ? 'selected' : '' %>><%= m %> min</option><% } %>
+      </select>
+    </div>
+  </div>
+  <button class="btn">Publish slots</button>
+</form>

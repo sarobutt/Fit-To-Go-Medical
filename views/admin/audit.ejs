@@ -1,0 +1,17 @@
+<%- include('../partials/header') %>
+<div class="page-head"><div><h1>Audit log</h1><p class="muted">The latest 500 actions taken by anyone on the system.</p></div></div>
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Record</th><th>Details</th></tr></thead>
+  <tbody>
+  <% for (const e of entries) { %>
+    <tr>
+      <td class="nowrap small"><%= time.formatDateTime(e.created_at) %></td>
+      <td><%= e.user_name || 'System' %><% if (e.user_role) { %> <span class="small muted">(<%= e.user_role %>)</span><% } %></td>
+      <td><code><%= e.action %></code></td>
+      <td class="small"><% if (e.entity === 'appointment') { %><a href="/admin/appointments/<%= e.entity_id %>">appointment #<%= e.entity_id %></a><% } else if (e.entity) { %><%= e.entity %> #<%= e.entity_id %><% } %></td>
+      <td class="small muted" style="max-width:360px;overflow-wrap:anywhere"><%= e.details || '' %></td>
+    </tr>
+  <% } %>
+  </tbody>
+</table></div></div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,18 @@
+<% if (!appointments.length) { %><div class="empty">No appointments.</div><% } else { %>
+<div class="table-wrap"><table>
+  <thead><tr><th>When</th><th>Patient</th><th>Test</th><th>Clinic · Doctor</th><th>Status</th><th class="num">Price</th><th></th></tr></thead>
+  <tbody>
+  <% for (const a of appointments) { %>
+    <tr>
+      <td class="nowrap"><%= time.formatDateTime(a.starts_at) %></td>
+      <td><a href="/admin/patients/<%= a.patient_id %>"><%= a.patient_name %></a><div class="small muted"><%= a.reference %></div></td>
+      <td><%= a.test_name %></td>
+      <td><%= a.clinic_name %><div class="small muted"><%= a.doctor_name %></div></td>
+      <td><%- include('../partials/status', { status: a.status }) %></td>
+      <td class="num"><%= money(a.price_pence) %></td>
+      <td class="right"><a href="/admin/appointments/<%= a.id %>">Manage</a></td>
+    </tr>
+  <% } %>
+  </tbody>
+</table></div>
+<% } %>

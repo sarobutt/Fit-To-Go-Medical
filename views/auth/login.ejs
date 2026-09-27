@@ -1,0 +1,13 @@
+<%- include('../partials/header') %>
+<div class="card auth-card">
+  <h1>Sign in</h1>
+  <p class="muted">Patients, doctors and clinic staff all sign in here.</p>
+  <form method="post" action="/login">
+    <%- include('../partials/csrf') %>
+    <div class="field"><label for="email">Email</label><input id="email" type="email" name="email" value="<%= email %>" autocomplete="email" required autofocus></div>
+    <div class="field"><label for="password">Password</label><input id="password" type="password" name="password" autocomplete="current-password" required></div>
+    <button class="btn block">Sign in</button>
+  </form>
+  <p class="small muted" style="margin-top:16px">New patient? <a href="/register">Create an account</a></p>
+</div>
+<%- include('../partials/footer') %>

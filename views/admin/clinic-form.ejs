@@ -1,0 +1,28 @@
+<%- include('../partials/header') %>
+<div class="page-head"><div><p class="muted small"><a href="/admin/clinics">← Clinics</a></p><h1><%= clinic.id ? clinic.name : 'New clinic' %></h1></div></div>
+<div class="grid grid-2" style="align-items:start">
+  <div class="card">
+    <form method="post" action="/admin/clinics<%= clinic.id ? '/' + clinic.id : '' %>">
+      <%- include('../partials/csrf') %>
+      <div class="field"><label for="name">Name</label><input id="name" name="name" type="text" value="<%= clinic.name || '' %>" required></div>
+      <div class="field"><label for="address">Address</label><input id="address" name="address" type="text" value="<%= clinic.address || '' %>" required></div>
+      <div class="form-row">
+        <div class="field"><label for="city">City</label><input id="city" name="city" type="text" value="<%= clinic.city || '' %>" required></div>
+        <div class="field"><label for="phone">Phone</label><input id="phone" name="phone" type="tel" value="<%= clinic.phone || '' %>"></div>
+      </div>
+      <div class="field"><label for="hours">Opening hours</label><input id="hours" name="opening_hours" type="text" value="<%= clinic.opening_hours || '' %>" placeholder="Mon–Fri 8am–6pm, Sat 9am–1pm"></div>
+      <button class="btn"><%= clinic.id ? 'Save clinic' : 'Create clinic' %></button>
+    </form>
+  </div>
+  <% if (clinic.id) { %>
+  <div class="card flush">
+    <h2>Doctors at this clinic</h2>
+    <% if (!doctors.length) { %><div class="empty">No doctors assigned. Assign clinics from a doctor's page.</div><% } else { %>
+      <div class="table-wrap"><table><tbody>
+        <% for (const d of doctors) { %><tr><td><a href="/admin/doctors/<%= d.id %>"><%= d.name %></a></td><td class="right"><span class="badge <%= d.is_active ? 'active' : 'inactive' %>"><%= d.is_active ? 'Active' : 'Inactive' %></span></td></tr><% } %>
+      </tbody></table></div>
+    <% } %>
+  </div>
+  <% } %>
+</div>
+<%- include('../partials/footer') %>

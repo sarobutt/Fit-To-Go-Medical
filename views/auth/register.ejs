@@ -1,0 +1,19 @@
+<%- include('../partials/header') %>
+<div class="card auth-card">
+  <h1>Create your account</h1>
+  <p class="muted">You'll need an account to book and pay for tests and see your results.</p>
+  <form method="post" action="/register">
+    <%- include('../partials/csrf') %>
+    <div class="field"><label for="name">Full name</label><input id="name" name="name" type="text" value="<%= form.name || '' %>" autocomplete="name" required></div>
+    <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" value="<%= form.email || '' %>" autocomplete="email" required></div>
+    <div class="form-row">
+      <div class="field"><label for="phone">Phone</label><input id="phone" name="phone" type="tel" value="<%= form.phone || '' %>" autocomplete="tel"></div>
+      <div class="field"><label for="dob">Date of birth</label><input id="dob" name="date_of_birth" type="date" value="<%= form.date_of_birth || '' %>" autocomplete="bday"></div>
+    </div>
+    <div class="field"><label for="password">Password <span class="hint">(8+ characters)</span></label><input id="password" name="password" type="password" minlength="8" autocomplete="new-password" required></div>
+    <div class="field"><label for="confirm">Confirm password</label><input id="confirm" name="confirm_password" type="password" minlength="8" autocomplete="new-password" required></div>
+    <button class="btn block">Create account</button>
+  </form>
+  <p class="small muted" style="margin-top:16px">Already registered? <a href="/login">Sign in</a></p>
+</div>
+<%- include('../partials/footer') %>

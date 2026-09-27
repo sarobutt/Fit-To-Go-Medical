@@ -1,0 +1,30 @@
+{
+  "name": "fit-to-go-medical",
+  "version": "1.0.0",
+  "description": "Fit to go medical - clinic test booking for patients, doctors and administrators",
+  "main": "src/server.js",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "seed": "node src/seed.js",
+    "test": "node --test --test-concurrency=1 test/*.test.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "connect-pg-simple": "^10.0.0",
+    "dotenv": "^18.0.4",
+    "ejs": "^6.0.1",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "helmet": "^8.3.0",
+    "pg": "^8.23.0",
+    "stripe": "^22.6.2"
+  },
+  "devDependencies": {
+    "supertest": "^7.3.0"
+  }
+}

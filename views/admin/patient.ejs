@@ -1,0 +1,52 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <div><p class="muted small"><a href="/admin/patients">← Patients</a></p><h1><%= patient.name %></h1><p class="muted">Patient record · joined <%= time.formatDateTime(patient.created_at) %></p></div>
+  <div class="row">
+    <form method="post" action="/admin/users/<%= patient.id %>/reset-password" class="inline-form" data-confirm="Generate a new temporary password for this patient?"><%- include('../partials/csrf') %><button class="btn secondary">Reset password</button></form>
+    <form method="post" action="/admin/users/<%= patient.id %>/toggle" class="inline-form" data-confirm="<%= patient.is_active ? 'Deactivate this patient account?' : 'Reactivate this account?' %>"><%- include('../partials/csrf') %><button class="btn <%= patient.is_active ? 'danger' : '' %>"><%= patient.is_active ? 'Deactivate' : 'Reactivate' %></button></form>
+  </div>
+</div>
+<div class="grid grid-2" style="align-items:start;margin-bottom:16px">
+  <div class="card">
+    <h2>Details</h2>
+    <form method="post" action="/admin/patients/<%= patient.id %>">
+      <%- include('../partials/csrf') %>
+      <div class="field"><label for="name">Name</label><input id="name" name="name" type="text" value="<%= patient.name %>" required></div>
+      <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" value="<%= patient.email %>" required></div>
+      <div class="form-row">
+        <div class="field"><label for="phone">Phone</label><input id="phone" name="phone" type="tel" value="<%= patient.phone || '' %>"></div>
+        <div class="field"><label for="dob">Date of birth</label><input id="dob" name="date_of_birth" type="date" value="<%= patient.date_of_birth || '' %>"></div>
+      </div>
+      <button class="btn secondary">Save details</button>
+    </form>
+  </div>
+  <div class="card flush">
+    <h2>Payments</h2>
+    <% if (!payments.length) { %><div class="empty">No payments.</div><% } else { %>
+    <div class="table-wrap"><table><tbody>
+      <% for (const p of payments) { %><tr><td class="nowrap"><%= time.formatDateTime(p.paid_at || p.created_at) %></td><td><%= p.reference %></td><td class="num"><%= money(p.amount_pence) %></td><td><span class="badge <%= p.status %>"><%= p.status %></span></td></tr><% } %>
+    </tbody></table></div>
+    <% } %>
+  </div>
+</div>
+<div class="card flush">
+  <h2>Appointments & results</h2>
+  <% if (!appointments.length) { %><div class="empty">No appointments.</div><% } else { %>
+  <div class="table-wrap"><table>
+    <thead><tr><th>When</th><th>Test</th><th>Clinic · Doctor</th><th>Status</th><th>Result</th><th></th></tr></thead>
+    <tbody>
+    <% for (const a of appointments) { %>
+      <tr>
+        <td class="nowrap"><%= time.formatDateTime(a.starts_at) %><div class="small muted"><%= a.reference %></div></td>
+        <td><%= a.test_name %></td>
+        <td><%= a.clinic_name %><div class="small muted"><%= a.doctor_name %></div></td>
+        <td><%- include('../partials/status', { status: a.status }) %></td>
+        <td class="small"><%= a.result_summary || '' %><% if (a.doctor_notes) { %><div class="muted">Notes: <%= a.doctor_notes %></div><% } %></td>
+        <td class="right"><a href="/admin/appointments/<%= a.id %>">Manage</a></td>
+      </tr>
+    <% } %>
+    </tbody>
+  </table></div>
+  <% } %>
+</div>
+<%- include('../partials/footer') %>

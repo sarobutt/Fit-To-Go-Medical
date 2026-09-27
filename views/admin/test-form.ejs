@@ -1,0 +1,17 @@
+<%- include('../partials/header') %>
+<div class="page-head"><div><p class="muted small"><a href="/admin/tests">← Tests</a></p><h1><%= test.id ? test.name : 'New test' %></h1></div></div>
+<div class="card" style="max-width:720px">
+  <form method="post" action="/admin/tests<%= test.id ? '/' + test.id : '' %>">
+    <%- include('../partials/csrf') %>
+    <div class="field"><label for="name">Name</label><input id="name" name="name" type="text" value="<%= test.name || '' %>" required></div>
+    <div class="form-row">
+      <div class="field"><label for="price">Price (£)</label><input id="price" name="price" type="number" step="0.01" min="0" value="<%= test.price_pence != null ? (test.price_pence / 100).toFixed(2) : '' %>" required></div>
+      <div class="field"><label for="duration">Duration (min)</label><input id="duration" name="duration_minutes" type="number" min="5" max="240" value="<%= test.duration_minutes || 15 %>" required></div>
+      <div class="field"><label for="turnaround">Results turnaround</label><input id="turnaround" name="turnaround" type="text" value="<%= test.turnaround || '' %>" placeholder="24–48 hours"></div>
+    </div>
+    <div class="field"><label for="description">Description</label><textarea id="description" name="description"><%= test.description || '' %></textarea></div>
+    <div class="field"><label for="prep">Preparation instructions</label><textarea id="prep" name="preparation"><%= test.preparation || '' %></textarea></div>
+    <button class="btn"><%= test.id ? 'Save test' : 'Create test' %></button>
+  </form>
+</div>
+<%- include('../partials/footer') %>

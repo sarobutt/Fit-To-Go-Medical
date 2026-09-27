@@ -1,0 +1,22 @@
+<%- include('../partials/header') %>
+<div class="page-head"><h1>Patients</h1>
+  <form method="get" class="row"><input type="search" name="q" value="<%= q %>" placeholder="Search name, email or phone" aria-label="Search patients" style="width:260px"><button class="btn secondary">Search</button></form>
+</div>
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Patient</th><th>Phone</th><th>Date of birth</th><th class="num">Visits</th><th>Last visit</th><th>Joined</th><th>Status</th></tr></thead>
+  <tbody>
+  <% for (const p of patients) { %>
+    <tr>
+      <td><a href="/admin/patients/<%= p.id %>"><strong><%= p.name %></strong></a><div class="small muted"><%= p.email %></div></td>
+      <td><%= p.phone || '—' %></td>
+      <td class="nowrap"><%= p.date_of_birth ? time.formatDate(p.date_of_birth) : '—' %></td>
+      <td class="num"><%= p.visits %></td>
+      <td class="nowrap"><%= p.last_visit ? time.formatDate(p.last_visit) : '—' %></td>
+      <td class="nowrap"><%= time.formatDateTime(p.created_at) %></td>
+      <td><span class="badge <%= p.is_active ? 'active' : 'inactive' %>"><%= p.is_active ? 'Active' : 'Inactive' %></span></td>
+    </tr>
+  <% } %>
+  <% if (!patients.length) { %><tr><td colspan="7" class="empty">No patients found.</td></tr><% } %>
+  </tbody>
+</table></div></div>
+<%- include('../partials/footer') %>

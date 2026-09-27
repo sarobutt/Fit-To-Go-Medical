@@ -1,0 +1,77 @@
+<%- include('../partials/header') %>
+<% const q = (o) => '/patient/book?' + new URLSearchParams(Object.fromEntries(Object.entries({ test: testId, clinic: clinic && clinic.id, date, ...o }).filter(([, v]) => v))).toString(); %>
+<div class="page-head"><div><h1>Book a test</h1><p class="muted">Three quick steps, then pay securely with Stripe.</p></div></div>
+
+<div class="stack">
+  <section class="card">
+    <h2 class="step-title"><span class="step-num">1</span> Choose your test</h2>
+    <div class="choice-grid">
+      <% for (const t of tests) { %>
+        <a class="choice <%= t.id === testId ? 'selected' : '' %>" href="<%= q({ test: t.id }) %>" aria-current="<%= t.id === testId %>">
+          <strong><%= t.name %></strong>
+          <span class="small muted"><%= t.duration_minutes %> min<%= t.turnaround ? ' · results ' + t.turnaround : '' %></span>
+          <div class="price" style="font-size:1.05rem;margin-top:6px"><%= money(t.price_pence) %></div>
+        </a>
+      <% } %>
+    </div>
+    <% if (test && test.preparation) { %><p class="small" style="margin:12px 0 0"><strong>Preparation:</strong> <%= test.preparation %></p><% } %>
+  </section>
+
+  <section class="card">
+    <h2 class="step-title"><span class="step-num">2</span> Choose a clinic</h2>
+    <div class="choice-grid">
+      <% for (const c of clinics) { %>
+        <a class="choice <%= clinic && c.id === clinic.id ? 'selected' : '' %>" href="<%= q({ clinic: c.id, date: '' }) %>">
+          <strong><%= c.name %></strong>
+          <span class="small muted"><%= c.address %>, <%= c.city %></span>
+        </a>
+      <% } %>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 class="step-title"><span class="step-num">3</span> Pick a date and time</h2>
+    <% if (!clinic) { %>
+      <p class="muted">Choose a clinic to see available times.</p>
+    <% } else if (!dates.length) { %>
+      <p class="muted">No appointments are currently available at <%= clinic.name %>. Please try another clinic or check back soon.</p>
+    <% } else { %>
+      <div class="chips" style="margin-bottom:16px" aria-label="Available dates">
+        <% for (const d of dates.slice(0, 21)) { %>
+          <a class="chip <%= d.date === date ? 'selected' : '' %>" href="<%= q({ date: d.date }) %>">
+            <%= time.formatDate(d.date).split(' ').slice(0, 3).join(' ') %><small><%= d.free %> free</small>
+          </a>
+        <% } %>
+      </div>
+      <% if (!slots.length) { %>
+        <p class="muted">No times left on this day. Please pick another date.</p>
+      <% } else { %>
+        <form method="post" action="/patient/book" id="book-form">
+          <%- include('../partials/csrf') %>
+          <input type="hidden" name="test_id" value="<%= testId || '' %>">
+          <div class="slot-grid" role="radiogroup" aria-label="Available times">
+            <% for (const s of slots) { %>
+              <label class="slot">
+                <input type="radio" name="slot_id" value="<%= s.id %>" required>
+                <span class="t"><%= s.starts_at.slice(11, 16) %></span>
+                <span class="d"><%= s.doctor_name %></span>
+              </label>
+            <% } %>
+          </div>
+          <div class="summary-bar" style="margin:20px -20px -20px">
+            <div>
+              <% if (test) { %>
+                <strong><%= test.name %></strong> at <%= clinic.name %>, <%= time.formatDate(date) %>
+                <div class="small muted">Your slot is held for 30 minutes while you pay.</div>
+              <% } else { %>
+                <strong>Choose a test in step 1 to continue.</strong>
+              <% } %>
+            </div>
+            <button class="btn" <%= test ? '' : 'disabled' %>>Continue to payment<%= test ? ' · ' + money(test.price_pence) : '' %></button>
+          </div>
+        </form>
+      <% } %>
+    <% } %>
+  </section>
+</div>
+<%- include('../partials/footer') %>

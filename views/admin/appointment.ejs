@@ -1,0 +1,73 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <div><p class="muted small"><a href="/admin/appointments">← Appointments</a></p><h1><%= appt.reference %></h1><p class="muted"><%= appt.test_name %> for <a href="/admin/patients/<%= appt.patient_id %>"><%= appt.patient_name %></a></p></div>
+  <%- include('../partials/status', { status: appt.status }) %>
+</div>
+<div class="grid grid-2" style="align-items:start">
+  <div class="stack">
+    <div class="card">
+      <h2>Details</h2>
+      <dl class="details">
+        <dt>When</dt><dd><%= time.formatDateTime(appt.starts_at) %> – <%= appt.ends_at.slice(11, 16) %></dd>
+        <dt>Clinic</dt><dd><a href="/admin/clinics/<%= appt.clinic_id %>"><%= appt.clinic_name %></a></dd>
+        <dt>Doctor</dt><dd><a href="/admin/doctors/<%= appt.doctor_id %>"><%= appt.doctor_name %></a></dd>
+        <dt>Patient</dt><dd><%= appt.patient_name %> · <%= appt.patient_email %></dd>
+        <dt>Price</dt><dd><%= money(appt.price_pence) %></dd>
+        <dt>Booked</dt><dd><%= time.formatDateTime(appt.created_at) %></dd>
+        <% if (appt.checked_in_at) { %><dt>Checked in</dt><dd><%= time.formatDateTime(appt.checked_in_at) %></dd><% } %>
+        <% if (appt.completed_at) { %><dt>Completed</dt><dd><%= time.formatDateTime(appt.completed_at) %></dd><% } %>
+        <% if (appt.cancel_reason) { %><dt>Cancelled</dt><dd><%= appt.cancel_reason %></dd><% } %>
+      </dl>
+      <div class="row" style="margin-top:16px">
+        <% if (appt.status === 'confirmed') { %>
+          <form method="post" action="/admin/appointments/<%= appt.id %>/check-in" class="inline-form"><%- include('../partials/csrf') %><button class="btn">Check in</button></form>
+          <form method="post" action="/admin/appointments/<%= appt.id %>/no-show" class="inline-form" data-confirm="Mark as no-show?"><%- include('../partials/csrf') %><button class="btn secondary">No-show</button></form>
+        <% } %>
+      </div>
+    </div>
+    <% if (['confirmed', 'pending_payment'].includes(appt.status)) { %>
+      <div class="card">
+        <h2>Cancel appointment</h2>
+        <form method="post" action="/admin/appointments/<%= appt.id %>/cancel" data-confirm="Cancel this appointment?">
+          <%- include('../partials/csrf') %>
+          <div class="field"><label for="reason">Reason</label><input id="reason" type="text" name="reason" placeholder="e.g. Clinic closed, patient request"></div>
+          <label class="checkbox"><input type="checkbox" name="refund" checked> Refund the payment in full through Stripe</label>
+          <button class="btn danger">Cancel appointment</button>
+        </form>
+      </div>
+    <% } %>
+  </div>
+  <div class="stack">
+    <div class="card">
+      <h2>Consultation</h2>
+      <% if (appt.status === 'checked_in' || appt.status === 'completed') { %>
+        <form method="post" action="/admin/appointments/<%= appt.id %>/<%= appt.status === 'checked_in' ? 'complete' : 'results' %>">
+          <%- include('../partials/csrf') %>
+          <div class="field"><label for="notes">Clinical notes <span class="hint">(internal)</span></label><textarea id="notes" name="doctor_notes"><%= appt.doctor_notes || '' %></textarea></div>
+          <div class="field"><label for="result">Result summary <span class="hint">(shown to patient)</span></label><textarea id="result" name="result_summary"><%= appt.result_summary || '' %></textarea></div>
+          <button class="btn"><%= appt.status === 'checked_in' ? 'Complete appointment' : 'Save results' %></button>
+        </form>
+      <% } else { %>
+        <p class="muted">Notes and results can be recorded once the patient is checked in.</p>
+      <% } %>
+    </div>
+    <div class="card flush">
+      <h2>Payments</h2>
+      <% if (!payments.length) { %><div class="empty">No payments.</div><% } else { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th class="num">Amount</th><th>Status</th><th>Stripe</th></tr></thead>
+        <tbody><% for (const p of payments) { %>
+          <tr><td><%= time.formatDateTime(p.paid_at || p.created_at) %></td><td class="num"><%= money(p.amount_pence) %></td><td><span class="badge <%= p.status %>"><%= p.status %></span></td><td class="small muted"><%= p.payment_intent_id || p.checkout_session_id %></td></tr>
+        <% } %></tbody>
+      </table></div>
+      <% } %>
+    </div>
+    <div class="card flush">
+      <h2>History</h2>
+      <div class="table-wrap"><table><tbody>
+        <% for (const l of log) { %><tr><td class="nowrap small"><%= time.formatDateTime(l.created_at) %></td><td><%= l.action %></td><td class="small muted"><%= l.user_name || 'System' %></td></tr><% } %>
+      </tbody></table></div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,40 @@
+<%- include('../partials/header') %>
+<% const canEdit = base === '/admin' || user.can_manage_availability; %>
+<div class="page-head">
+  <div>
+    <p class="muted small"><a href="<%= base %>/availability">← Availability</a></p>
+    <h1><%= time.formatDate(session.date) %>, <%= session.start_time %>–<%= session.end_time %></h1>
+    <p class="muted"><%= session.clinic_name %><%= session.doctor_name ? ' · ' + session.doctor_name : '' %> · <%= session.slot_minutes %>-minute slots</p>
+  </div>
+  <% if (canEdit) { %>
+    <form method="post" action="<%= base %>/availability/<%= session.id %>/delete" data-confirm="Remove this whole session?">
+      <%- include('../partials/csrf') %><button class="btn danger">Remove session</button>
+    </form>
+  <% } %>
+</div>
+<div class="card flush">
+  <div class="table-wrap"><table>
+    <thead><tr><th>Time</th><th>Status</th><th>Patient</th><th class="right"></th></tr></thead>
+    <tbody>
+    <% for (const s of slots) { %>
+      <tr>
+        <td class="nowrap"><%= s.starts_at.slice(11, 16) %>–<%= s.ends_at.slice(11, 16) %></td>
+        <td>
+          <% if (s.appointment_id) { %><%- include('../partials/status', { status: s.status }) %>
+          <% } else if (s.is_blocked) { %><span class="badge blocked">Blocked</span>
+          <% } else { %><span class="badge active">Free</span><% } %>
+        </td>
+        <td><% if (s.appointment_id) { %><a href="<%= base %>/appointments/<%= s.appointment_id %>"><%= s.patient_name %></a><% } %></td>
+        <td class="right">
+          <% if (!s.appointment_id && canEdit) { %>
+            <form method="post" action="<%= base %>/slots/<%= s.id %>/<%= s.is_blocked ? 'unblock' : 'block' %>" class="inline-form">
+              <%- include('../partials/csrf') %><button class="btn small secondary"><%= s.is_blocked ? 'Unblock' : 'Block' %></button>
+            </form>
+          <% } %>
+        </td>
+      </tr>
+    <% } %>
+    </tbody>
+  </table></div>
+</div>
+<%- include('../partials/footer') %>
