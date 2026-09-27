@@ -246,8 +246,10 @@ test('staff sign in only at the staff page, with email and password', async () =
   const ok = await agent.post('/staff/login').type('form').send({ _csrf: csrf, email: 'admin@test.io', password: 'Password123!' });
   assert.equal(ok.headers.location, '/admin');
   assert.equal((await agent.get('/admin')).status, 200);
-  // A doctor can't open admin pages, and an admin isn't a doctor.
-  assert.equal((await agent.get('/doctor')).status, 404);
+  // An admin opening the doctor pages is sent back to the admin area with an explanation.
+  const wrongArea = await agent.get('/doctor');
+  assert.equal(wrongArea.headers.location, '/admin');
+  assert.match((await agent.get('/admin')).text, /The doctor pages are only for doctor accounts/);
 
   // Patients can't sign in at the staff page.
   const p = request.agent(ctx.app);

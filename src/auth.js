@@ -71,9 +71,17 @@ function staffArea(req, res, next) {
   next();
 }
 
-/** Only signed-in staff with one of `roles` get through; everyone else sees "Page not found". */
+/**
+ * Only signed-in staff with one of `roles` get through. Visitors and patients see "Page not found";
+ * staff signed in with the other role are sent back to their own area with an explanation.
+ */
 function requireStaff(...roles) {
   return (req, res, next) => {
+    if (isStaff(req.user) && !roles.includes(req.user.role)) {
+      const area = roles.includes('admin') ? 'admin' : 'doctor';
+      req.flash('info', `The ${area} pages are only for ${area} accounts. You're signed in as ${req.user.role === 'admin' ? 'an admin' : 'a doctor'} (${req.user.email}). To use them, sign out and sign in at /staff/login with ${area === 'admin' ? 'an admin' : 'a doctor'}'s email.`);
+      return res.redirect(homeFor(req.user));
+    }
     if (!req.user || !roles.includes(req.user.role)) return notFound(res);
     next();
   };
