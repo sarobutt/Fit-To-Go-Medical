@@ -1,13 +1,11 @@
 <%- include('../partials/header') %>
 <div class="page-head">
   <div><p class="muted small"><a href="/admin/doctors">← Doctors</a></p><h1><%= doctor.id ? doctor.name : 'Add a doctor' %></h1>
-  <% if (doctor.id) { %><div class="row"><span class="badge <%= doctor.is_active ? 'active' : 'inactive' %>"><%= doctor.is_active ? 'Active' : 'Deactivated' %></span>
-  <span class="badge <%= doctor.totp_enabled ? 'active' : 'pending' %>"><%= doctor.totp_enabled ? 'Two-step sign-in on' : 'Two-step sign-in not set up yet' %></span></div><% } %></div>
+  <% if (doctor.id) { %><span class="badge <%= doctor.is_active ? 'active' : 'inactive' %>"><%= doctor.is_active ? 'Active' : 'Deactivated' %></span><% } %></div>
   <% if (doctor.id) { %>
     <div class="row">
       <a class="btn secondary" href="/admin/availability?doctor=<%= doctor.id %>">Availability</a>
       <a class="btn secondary" href="/admin/appointments?doctor=<%= doctor.id %>">Appointments</a>
-      <% if (doctor.totp_enabled) { %><form method="post" action="/admin/users/<%= doctor.id %>/reset-2fa" class="inline-form" data-confirm="Reset two-step sign-in? Use this if they lost their phone. They'll be signed out and set it up again at next sign-in."><%- include('../partials/csrf') %><button class="btn secondary">Reset two-step sign-in</button></form><% } %>
       <form method="post" action="/admin/users/<%= doctor.id %>/reset-password" class="inline-form" data-confirm="Generate a new temporary password? They'll be signed out and must choose a new password."><%- include('../partials/csrf') %><button class="btn secondary">Reset password</button></form>
       <form method="post" action="/admin/users/<%= doctor.id %>/toggle" class="inline-form" data-confirm="<%= doctor.is_active ? 'Deactivate this doctor? They will be signed out and their slots hidden from booking.' : 'Reactivate this doctor?' %>"><%- include('../partials/csrf') %><button class="btn <%= doctor.is_active ? 'danger' : '' %>"><%= doctor.is_active ? 'Deactivate' : 'Reactivate' %></button></form>
     </div>

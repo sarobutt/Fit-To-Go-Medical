@@ -1,8 +1,8 @@
 /**
  * Emergency access for a locked-out doctor or administrator (e.g. the only
- * admin lost their phone). Run on the server with access to the database:
+ * admin forgot their password). Run on the server with access to the database:
  *   npm run staff:reset -- someone@example.com
- * Gives them a new temporary password and clears their two-step sign-in.
+ * Gives them a new temporary password (they choose their own at next sign-in).
  */
 const crypto = require('node:crypto');
 const bcrypt = require('bcryptjs');
@@ -15,8 +15,7 @@ async function main(email) {
     await migrate(pool);
     const password = crypto.randomBytes(12).toString('base64url');
     const { rows: [user] } = await pool.query(
-      `UPDATE users SET password_hash = $2, must_change_password = TRUE, is_active = TRUE,
-              totp_secret = NULL, totp_enabled = FALSE, totp_last_step = NULL
+      `UPDATE users SET password_hash = $2, must_change_password = TRUE, is_active = TRUE
         WHERE lower(email) = lower($1) AND role IN ('doctor', 'admin') RETURNING id, name, role`,
       [email, await bcrypt.hash(password, 12)]);
     if (!user) throw new Error(`No doctor or administrator with email ${email}.`);
@@ -26,7 +25,7 @@ async function main(email) {
       [user.id, JSON.stringify({ via: 'command line' })]);
     console.log(`Reset ${user.name} (${user.role}).`);
     console.log(`Temporary password: ${password}`);
-    console.log('They sign in at /staff/login, choose a new password and set up two-step sign-in again.');
+    console.log('They sign in at /staff/login and choose a new password.');
   } finally {
     await pool.end();
   }

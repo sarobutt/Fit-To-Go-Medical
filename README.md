@@ -13,16 +13,16 @@ A booking website for a medical-testing clinic. It has three kinds of user:
 The doctor and admin areas are private:
 
 - **Separate staff sign-in** at `/staff/login`. The public site doesn't link to it, and the patient sign-in refuses staff accounts.
-- **Two-step sign-in for every doctor and admin.** After their password, staff enter a 6-digit code from an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password…). At first sign-in they scan a QR code to set this up. Each code works once.
+- **Email and password sign-in** for doctors and admins. Only an admin can create staff accounts.
 - **Hidden from everyone else.** Anyone not signed in as the right kind of staff gets "Page not found" on `/admin` and `/doctor` pages, so they can't tell the pages exist. Staff pages are never cached or indexed by search engines.
 - **Temporary passwords must be replaced** at first sign-in with one of at least 12 characters. This applies to new staff accounts and password resets.
 - **Automatic sign-out** after 30 minutes of inactivity (`STAFF_IDLE_MINUTES`).
-- **Signed out everywhere** when an admin deactivates them or resets their password or two-step sign-in.
-- **Limits on guessing:** 5 wrong passwords, or 5 wrong codes, and they must wait or start again. Failed staff sign-ins are recorded in the audit log.
+- **Signed out everywhere** when an admin deactivates them or resets their password.
+- **Limits on guessing:** after 5 wrong passwords they must wait 15 minutes. Failed staff sign-ins are recorded in the audit log.
 - **Optional clinic-only access:** set `STAFF_ALLOWED_IPS` to your clinic's IP address(es) and staff pages only open from there.
 
-**Lost phone:** another admin opens the person's page and clicks **Reset two-step sign-in**. If the *only* admin is locked out, run this on the server:
-`npm run staff:reset -- their@email.com`. It prints a new temporary password and clears their two-step sign-in.
+**Forgotten password:** another admin opens the person's page and clicks **Reset password**. If the *only* admin is locked out, run this on the server:
+`npm run staff:reset -- their@email.com`. It prints a new temporary password.
 
 Doctor permissions an admin controls: *manage availability & slots*, *check patients in*, *record notes & results*, *view patient history*, *cancel appointments (with refund)*.
 
@@ -77,7 +77,7 @@ Optional variables: `CURRENCY` (default `gbp`), `CLINIC_TIMEZONE` (default `Euro
 - Start command: `npm start`
 - Run once after the first deploy: `npm run seed`. This creates the admin account plus starter clinics and tests, which you can then edit in the admin area.
 
-Then sign in as the admin at `https://YOUR-DOMAIN/staff/login` (you'll set up two-step sign-in on your phone), go to **Doctors → Add doctor**, and assign each doctor their clinics and permissions. Doctors then publish their availability, and patients can start booking.
+Then sign in as the admin at `https://YOUR-DOMAIN/staff/login`, go to **Doctors → Add doctor**, and assign each doctor their clinics and permissions. Doctors then publish their availability, and patients can start booking.
 
 ## Running locally
 

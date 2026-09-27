@@ -265,7 +265,7 @@ module.exports = (db) => {
       await audit(c, req.user.id, 'doctor.create', 'user', u.id, { email });
       return u;
     });
-    req.flash('success', `Doctor account created. They sign in at ${req.app.locals.staffLoginUrl} with ${email} and the temporary password ${password}. Share it privately – they'll be asked to choose their own password and set up two-step sign-in.`);
+    req.flash('success', `Doctor account created. They sign in at ${req.app.locals.staffLoginUrl} with ${email} and the temporary password ${password}. Share it privately – they'll be asked to choose their own password.`);
     res.redirect(`/admin/doctors/${doctor.id}`);
   });
 
@@ -326,19 +326,6 @@ module.exports = (db) => {
     if (id(req.params.id) !== req.user.id) await endSessions(db, id(req.params.id));
     await audit(db, req.user.id, 'user.reset_password', 'user', id(req.params.id));
     req.flash('success', `New temporary password for ${u.email}: ${password}`);
-    res.redirect(backUrl(req, '/admin'));
-  });
-
-  router.post('/users/:id/reset-2fa', async (req, res) => {
-    const userId = id(req.params.id);
-    if (userId === req.user.id) throw new ValidationError('Another administrator must reset your two-step sign-in.');
-    const u = await db.one(
-      `UPDATE users SET totp_secret = NULL, totp_enabled = FALSE, totp_last_step = NULL
-        WHERE id = $1 AND role IN ('doctor', 'admin') RETURNING name`, [userId]);
-    if (!u) throw new ValidationError('User not found.');
-    await endSessions(db, userId);
-    await audit(db, req.user.id, 'user.reset_2fa', 'user', userId);
-    req.flash('success', `Two-step sign-in reset for ${u.name}. They'll set it up again with a new phone next time they sign in.`);
     res.redirect(backUrl(req, '/admin'));
   });
 

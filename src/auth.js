@@ -28,7 +28,7 @@ function loadUser(db) {
     try {
       const user = await db.one(
         `SELECT u.id, u.role, u.name, u.email, u.phone, u.date_of_birth, u.is_active, u.must_change_password,
-                u.totp_enabled, dp.can_manage_availability, dp.can_check_in, dp.can_record_results,
+                dp.can_manage_availability, dp.can_check_in, dp.can_record_results,
                 dp.can_view_patient_history, dp.can_cancel_appointments, dp.specialty
            FROM users u LEFT JOIN doctor_profiles dp ON dp.user_id = u.id
           WHERE u.id = $1`,
@@ -40,7 +40,7 @@ function loadUser(db) {
       if (isStaff(user)) {
         const now = Date.now();
         const idleLimit = config.staffIdleMinutes * 60_000;
-        // A staff session must have passed two-step sign-in and still be fresh.
+        // A staff session must come from the staff sign-in and still be fresh.
         if (!req.session.staffVerified || now - (req.session.lastSeen || 0) > idleLimit) {
           return req.session.regenerate((err) => {
             if (err) return next(err);

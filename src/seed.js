@@ -37,7 +37,7 @@ async function seed({ demo = false } = {}) {
          VALUES ('admin', 'Clinic Administrator', $1, $2, $3)`,
         [adminEmail, await bcrypt.hash(adminPassword, 12), !process.env.ADMIN_PASSWORD]);
       console.log(`Created administrator ${adminEmail}${process.env.ADMIN_PASSWORD ? '' : ` (temporary password: ${adminPassword})`}`);
-      console.log('Staff sign in at /staff/login and set up two-step sign-in with an authenticator app.');
+      console.log('Staff sign in at /staff/login.');
     }
 
     if (!(await db.one('SELECT 1 FROM clinics'))) {

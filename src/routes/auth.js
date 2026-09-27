@@ -44,7 +44,7 @@ module.exports = (db) => {
     }
     const user = await db.one('SELECT * FROM users WHERE lower(email) = $1', [email]);
     const passwordOk = await checkPassword(user, password);
-    // Staff never sign in here; they use the separate staff sign-in with two-step verification.
+    // Staff never sign in here; they use the separate staff sign-in at /staff/login.
     if (!passwordOk || isStaff(user)) {
       recordFailure(key);
       res.locals.flash = [{ type: 'error', message: 'Email or password is incorrect.' }];

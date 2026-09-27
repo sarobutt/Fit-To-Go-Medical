@@ -2,15 +2,14 @@
 <div class="page-head"><div><h1>Administrators</h1><p class="muted">Administrators have full access to every part of <%= siteName %>.</p></div></div>
 <div class="grid grid-2" style="align-items:start">
   <div class="card flush"><div class="table-wrap"><table>
-    <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Two-step</th><th></th></tr></thead>
+    <thead><tr><th>Name</th><th>Email</th><th>Status</th><th></th></tr></thead>
     <tbody>
     <% for (const a of admins) { %>
       <tr>
         <td><%= a.name %><%= a.id === user.id ? ' (you)' : '' %></td>
         <td><%= a.email %></td>
         <td><span class="badge <%= a.is_active ? 'active' : 'inactive' %>"><%= a.is_active ? 'Active' : 'Inactive' %></span></td>
-        <td><span class="badge <%= a.totp_enabled ? 'active' : 'pending' %>"><%= a.totp_enabled ? 'On' : 'Not set up' %></span></td>
-        <td class="right"><% if (a.id !== user.id) { %><div class="row" style="justify-content:flex-end"><% if (a.totp_enabled) { %><form method="post" action="/admin/users/<%= a.id %>/reset-2fa" class="inline-form" data-confirm="Reset <%= a.name %>'s two-step sign-in?"><%- include('../partials/csrf') %><button class="btn small secondary">Reset two-step</button></form><% } %><form method="post" action="/admin/users/<%= a.id %>/toggle" class="inline-form" data-confirm="Change access for <%= a.name %>?"><%- include('../partials/csrf') %><button class="btn small secondary"><%= a.is_active ? 'Deactivate' : 'Reactivate' %></button></form></div><% } %></td>
+        <td class="right"><% if (a.id !== user.id) { %><div class="row" style="justify-content:flex-end"><form method="post" action="/admin/users/<%= a.id %>/toggle" class="inline-form" data-confirm="Change access for <%= a.name %>?"><%- include('../partials/csrf') %><button class="btn small secondary"><%= a.is_active ? 'Deactivate' : 'Reactivate' %></button></form></div><% } %></td>
       </tr>
     <% } %>
     </tbody>
@@ -22,7 +21,7 @@
       <div class="field"><label for="name">Name</label><input id="name" name="name" type="text" required></div>
       <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" required></div>
       <button class="btn">Create administrator</button>
-      <p class="small muted" style="margin-top:8px">A temporary password is shown once after creating. They sign in at <code><%= staffLoginUrl %></code>, choose their own password and set up two-step sign-in.</p>
+      <p class="small muted" style="margin-top:8px">A temporary password is shown once after creating. They sign in at <code><%= staffLoginUrl %></code> and choose their own password.</p>
     </form>
   </div>
 </div>

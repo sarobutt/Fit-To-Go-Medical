@@ -1,7 +1,6 @@
 const { test, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
-const { setup, login, addSlot, inDays, request, csrfFrom, STAFF_SECRET } = require('./helpers');
-const totp = require('../src/totp');
+const { setup, login, addSlot, inDays, request, csrfFrom } = require('./helpers');
 const time = require('../src/time');
 
 let ctx;
@@ -233,7 +232,7 @@ test('admin dashboard and management pages render', async () => {
   assert.equal((await ctx.db.one(`SELECT price_pence FROM tests WHERE name = 'ECG'`)).price_pence, 6550);
 });
 
-test('staff cannot use the patient sign-in, and need their phone code at the staff sign-in', async () => {
+test('staff sign in only at the staff page, with email and password', async () => {
   // Correct staff password on the patient page is refused like a wrong password.
   const agent = request.agent(ctx.app);
   let csrf = csrfFrom((await agent.get('/login')).text);
@@ -241,64 +240,43 @@ test('staff cannot use the patient sign-in, and need their phone code at the sta
   assert.equal(res.status, 401);
   assert.equal((await agent.get('/admin')).status, 404);
 
-  // Password alone is not enough at the staff sign-in.
   csrf = csrfFrom((await agent.get('/staff/login')).text);
-  const step1 = await agent.post('/staff/login').type('form').send({ _csrf: csrf, email: 'admin@test.io', password: 'Password123!' });
-  assert.equal(step1.headers.location, '/staff/verify');
-  assert.equal((await agent.get('/admin')).status, 404);
-
-  const wrong = await agent.post('/staff/verify').type('form').send({ _csrf: csrf, code: '000000' });
-  assert.equal(wrong.headers.location, '/staff/verify');
-  assert.equal((await agent.get('/admin')).status, 404);
-
-  const code = totp.codeAt(STAFF_SECRET, totp.currentStep());
-  const ok = await agent.post('/staff/verify').type('form').send({ _csrf: csrf, code });
+  const wrong = await agent.post('/staff/login').type('form').send({ _csrf: csrf, email: 'admin@test.io', password: 'nope' });
+  assert.equal(wrong.status, 401);
+  const ok = await agent.post('/staff/login').type('form').send({ _csrf: csrf, email: 'admin@test.io', password: 'Password123!' });
   assert.equal(ok.headers.location, '/admin');
   assert.equal((await agent.get('/admin')).status, 200);
+  // A doctor can't open admin pages, and an admin isn't a doctor.
+  assert.equal((await agent.get('/doctor')).status, 404);
 
-  // The same code can't be used again by someone else.
-  const other = request.agent(ctx.app);
-  const c2 = csrfFrom((await other.get('/staff/login')).text);
-  await other.post('/staff/login').type('form').send({ _csrf: c2, email: 'admin@test.io', password: 'Password123!' });
-  const replay = await other.post('/staff/verify').type('form').send({ _csrf: c2, code });
-  assert.equal(replay.headers.location, '/staff/verify');
-
-  // Patients can't sign in at the staff page either.
+  // Patients can't sign in at the staff page.
   const p = request.agent(ctx.app);
   const c3 = csrfFrom((await p.get('/staff/login')).text);
   const pat = await p.post('/staff/login').type('form').send({ _csrf: c3, email: 'pat@test.io', password: 'Password123!' });
   assert.equal(pat.status, 401);
 });
 
-test('new staff set up two-step sign-in and replace their temporary password', async () => {
+test('new staff replace their temporary password at first sign-in', async () => {
   const admin = await login(ctx.app, 'admin@test.io');
   const created = await admin.post$('/admin/doctors', { name: 'Dr New', email: 'new@test.io', password: 'Temporary-pass1' });
   assert.equal(created.status, 302);
 
   const agent = request.agent(ctx.app);
   const csrf = csrfFrom((await agent.get('/staff/login')).text);
-  const step1 = await agent.post('/staff/login').type('form').send({ _csrf: csrf, email: 'new@test.io', password: 'Temporary-pass1' });
-  assert.equal(step1.headers.location, '/staff/setup');
-  const setup = await agent.get('/staff/setup');
-  assert.match(setup.text, /data:image\/png;base64/);
-  const secret = setup.text.match(/<code class="secret">([^<]+)<\/code>/)[1].replace(/\s/g, '');
-  const done = await agent.post('/staff/setup').type('form')
-    .send({ _csrf: csrf, code: totp.codeAt(secret, totp.currentStep()) });
-  assert.equal(done.status, 302);
+  const signIn = await agent.post('/staff/login').type('form').send({ _csrf: csrf, email: 'new@test.io', password: 'Temporary-pass1' });
+  assert.equal(signIn.headers.location, '/doctor');
 
-  // Forced to change the temporary password before anything else.
   const home = await agent.get('/doctor');
   assert.equal(home.headers.location, '/staff/change-password');
-  const page = await agent.get('/staff/change-password');
-  const c2 = csrfFrom(page.text);
+  const c2 = csrfFrom((await agent.get('/staff/change-password')).text);
   const short = await agent.post('/staff/change-password').type('form').send({ _csrf: c2, new_password: 'short', confirm_password: 'short' });
   assert.equal(short.headers.location, '/staff/change-password');
   const good = await agent.post('/staff/change-password').type('form')
     .send({ _csrf: c2, new_password: 'a much longer passphrase', confirm_password: 'a much longer passphrase' });
   assert.equal(good.headers.location, '/doctor');
   assert.equal((await agent.get('/doctor')).status, 200);
-  const row = await ctx.db.one(`SELECT totp_enabled, must_change_password FROM users WHERE email = 'new@test.io'`);
-  assert.deepEqual(row, { totp_enabled: true, must_change_password: false });
+  const row = await ctx.db.one(`SELECT must_change_password FROM users WHERE email = 'new@test.io'`);
+  assert.equal(row.must_change_password, false);
 });
 
 test('staff are signed out after 30 minutes of inactivity', async () => {
