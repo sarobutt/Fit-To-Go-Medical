@@ -159,7 +159,9 @@ test('doctor publishes availability, checks a patient in and records results', a
 
   const day = await doc.get('/doctor');
   assert.match(day.text, /Pat One/);
-  assert.equal((await doc.post$(`/doctor/appointments/${appt.id}/check-in`)).status, 302);
+  const checkedIn = await doc.post$(`/doctor/appointments/${appt.id}/check-in`);
+  assert.equal(checkedIn.headers.location, `/doctor/appointments/${appt.id}#consultation`);
+  assert.match((await doc.get(`/doctor/appointments/${appt.id}`)).text, /Consultation record[\s\S]*Blood pressure – systolic/);
   assert.equal((await ctx.db.one('SELECT status FROM appointments WHERE id = $1', [appt.id])).status, 'checked_in');
 
   await doc.post$(`/doctor/appointments/${appt.id}/consultation`, {

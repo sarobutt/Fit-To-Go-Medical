@@ -82,9 +82,11 @@ module.exports = (db) => {
   });
 
   router.post('/appointments/:id/check-in', requirePermission('can_check_in'), async (req, res) => {
-    await bookings.checkIn(db, { appointmentId: parseInt(req.params.id, 10) || 0, actorId: req.user.id, doctorId: req.user.id });
-    req.flash('success', 'Patient checked in.');
-    res.redirect(backUrl(req, '/doctor'));
+    const id = parseInt(req.params.id, 10) || 0;
+    await bookings.checkIn(db, { appointmentId: id, actorId: req.user.id, doctorId: req.user.id });
+    // Go straight to the consultation record so the doctor can start filling it in.
+    req.flash('success', 'Patient checked in. Fill in the consultation record below.');
+    res.redirect(`/doctor/appointments/${id}#consultation`);
   });
 
   router.post('/appointments/:id/no-show', requirePermission('can_check_in'), async (req, res) => {

@@ -34,7 +34,7 @@
             <form method="post" action="/doctor/appointments/<%= a.id %>/check-in" class="inline-form"><%- include('../partials/csrf') %><button class="btn small">Check in</button></form>
             <form method="post" action="/doctor/appointments/<%= a.id %>/no-show" class="inline-form" data-confirm="Mark <%= a.patient_name %> as a no-show?"><%- include('../partials/csrf') %><button class="btn small secondary">No-show</button></form>
           <% } else if (a.status === 'checked_in') { %>
-            <a class="btn small" href="/doctor/appointments/<%= a.id %>">See patient</a>
+            <a class="btn small" href="/doctor/appointments/<%= a.id %>#consultation">Open consultation</a>
           <% } else { %>
             <a class="btn small secondary" href="/doctor/appointments/<%= a.id %>">Open</a>
           <% } %>

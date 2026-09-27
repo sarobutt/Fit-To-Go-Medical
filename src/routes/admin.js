@@ -442,8 +442,8 @@ module.exports = (db) => {
 
   router.post('/appointments/:id/check-in', async (req, res) => {
     await bookings.checkIn(db, { appointmentId: id(req.params.id), actorId: req.user.id });
-    req.flash('success', 'Patient checked in.');
-    res.redirect(backUrl(req, '/admin/appointments'));
+    req.flash('success', 'Patient checked in. The consultation record is below.');
+    res.redirect(`/admin/appointments/${id(req.params.id)}#consultation`);
   });
 
   router.post('/appointments/:id/no-show', async (req, res) => {
