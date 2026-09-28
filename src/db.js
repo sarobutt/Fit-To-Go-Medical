@@ -172,7 +172,9 @@ function createPool(connectionString = config.databaseUrl) {
   }
   return new Pool({
     connectionString,
-    ssl: config.databaseSsl(connectionString) ? { rejectUnauthorized: false } : false,
+    // Encrypted and certificate-checked, so the connection can't be intercepted by an impostor server.
+    // DATABASE_SSL_VERIFY=false is only for hosts whose certificates can't be verified.
+    ssl: config.databaseSsl(connectionString) ? { rejectUnauthorized: config.databaseSslVerify } : false,
     max: 10,
   });
 }

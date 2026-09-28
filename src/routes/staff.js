@@ -3,8 +3,8 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const config = require('../config');
 const { homeFor, isStaff, notFound } = require('../auth');
-const { checkPassword } = require('./auth');
-const { tooManyAttempts, recordFailure, clearFailures } = require('../ratelimit');
+const { checkPassword, endOtherSessions } = require('./auth');
+const { clearFailures, signInKeys, blocked, recordAll } = require('../ratelimit');
 const { audit } = require('../services/audit');
 
 module.exports = (db) => {
@@ -33,21 +33,21 @@ module.exports = (db) => {
   router.post('/login', async (req, res, next) => {
     const email = String(req.body.email || '').trim().toLowerCase();
     const password = String(req.body.password || '');
-    const key = `staff|${email}|${req.ip}`;
+    const keys = signInKeys('staff', email, req.ip);
     const fail = (status, message) => {
       res.locals.flash = [{ type: 'error', message }];
       res.status(status).render('staff/login', { title: 'Staff sign in', email });
     };
-    if (tooManyAttempts(key, 5)) return fail(429, 'Too many attempts. Please wait 15 minutes and try again.');
+    if (blocked(keys)) return fail(429, 'Too many attempts. Please wait 15 minutes and try again.');
 
     const user = await db.one('SELECT * FROM users WHERE lower(email) = $1', [email]);
     const ok = await checkPassword(user, password);
     if (!ok || !isStaff(user) || !user.is_active) {
-      recordFailure(key);
+      recordAll(keys);
       if (user && isStaff(user)) await audit(db, user.id, 'auth.staff_login_failed', 'user', user.id, { ip: req.ip });
       return fail(401, 'Email or password is incorrect.');
     }
-    clearFailures(key);
+    clearFailures(keys[0][0]);
     await audit(db, user.id, 'auth.staff_login', 'user', user.id, { ip: req.ip });
     completeSignIn(req, res, next, user);
   });
@@ -76,6 +76,7 @@ module.exports = (db) => {
     }
     await db.query('UPDATE users SET password_hash = $2, must_change_password = FALSE WHERE id = $1',
       [req.user.id, await bcrypt.hash(password, 12)]);
+    await endOtherSessions(db, req.user.id, req.sessionID);
     await audit(db, req.user.id, 'auth.change_password', 'user', req.user.id);
     req.flash('success', 'Password updated.');
     res.redirect(homeFor(req.user));

@@ -10,7 +10,7 @@ module.exports = (db) => {
     try {
       event = payments.constructWebhookEvent(req.body, req.get('stripe-signature'));
     } catch (err) {
-      return res.status(400).send(`Webhook error: ${err.message}`);
+      return res.status(400).type('text/plain').send(`Webhook error: ${err.message}`);
     }
 
     switch (event.type) {

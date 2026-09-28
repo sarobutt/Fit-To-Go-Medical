@@ -59,6 +59,7 @@ async function setup() {
   const db = helpers(pool);
   const stripe = fakeStripe();
   payments.setStripe(stripe);
+  require('../src/ratelimit').resetAll();
   const mail = [];
   mailer.setTransport({ sendMail: async (message) => { mail.push(message); } });
   const app = createApp(pool);

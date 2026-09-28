@@ -1,7 +1,9 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { homeFor, isStaff } = require('../auth');
-const { tooManyAttempts, recordFailure, clearFailures } = require('../ratelimit');
+const {
+  tooManyAttempts, recordFailure, clearFailures, signInKeys, blocked, recordAll, LIMITS,
+} = require('../ratelimit');
 const config = require('../config');
 const { audit } = require('../services/audit');
 const time = require('../time');
@@ -15,6 +17,11 @@ const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 12);
 async function checkPassword(user, password) {
   const ok = await bcrypt.compare(password, user ? user.password_hash : DUMMY_HASH);
   return Boolean(user && ok);
+}
+
+/** After a password change, sign the account out on every other device. */
+async function endOtherSessions(db, userId, keepSid) {
+  await db.query(`DELETE FROM "session" WHERE (sess->>'userId')::int = $1 AND sid <> $2`, [userId, keepSid]);
 }
 
 function signIn(req, user, cb) {
@@ -37,8 +44,8 @@ module.exports = (db) => {
   router.post('/login', async (req, res, next) => {
     const email = String(req.body.email || '').trim().toLowerCase();
     const password = String(req.body.password || '');
-    const key = `${email}|${req.ip}`;
-    if (tooManyAttempts(key)) {
+    const keys = signInKeys('patient', email, req.ip);
+    if (blocked(keys)) {
       res.locals.flash = [{ type: 'error', message: 'Too many attempts. Please wait 15 minutes and try again.' }];
       return res.status(429).render('auth/login', { title: 'Sign in', email });
     }
@@ -50,7 +57,7 @@ module.exports = (db) => {
       return res.redirect(303, '/staff/login?from=patient');
     }
     if (!passwordOk) {
-      recordFailure(key);
+      recordAll(keys);
       res.locals.flash = [{ type: 'error', message: 'Email or password is incorrect.' }];
       return res.status(401).render('auth/login', { title: 'Sign in', email });
     }
@@ -58,7 +65,7 @@ module.exports = (db) => {
       res.locals.flash = [{ type: 'error', message: 'This account has been deactivated. Please contact the clinic.' }];
       return res.status(403).render('auth/login', { title: 'Sign in', email });
     }
-    clearFailures(key);
+    clearFailures(keys[0][0]);
     await audit(db, user.id, 'auth.login', 'user', user.id);
     signIn(req, user, (err, dest) => (err ? next(err) : res.redirect(dest)));
   });
@@ -76,6 +83,12 @@ module.exports = (db) => {
       date_of_birth: String(req.body.date_of_birth || '').trim(),
     };
     const password = String(req.body.password || '');
+    const regKey = `register|${req.ip}`;
+    if (tooManyAttempts(regKey, LIMITS.registrations)) {
+      res.locals.flash = [{ type: 'error', message: 'Too many sign-ups from this connection. Please try again later.' }];
+      return res.status(429).render('auth/register', { title: 'Create an account', form });
+    }
+    recordFailure(regKey); // counts every attempt, successful or not
     const errors = [];
     if (form.name.length < 2) errors.push('Please enter your full name.');
     if (!EMAIL.test(form.email)) errors.push('Please enter a valid email address.');
@@ -116,8 +129,9 @@ module.exports = (db) => {
       req.flash('error', `New password must be at least ${minLength} characters.`);
     } else {
       await db.query('UPDATE users SET password_hash = $2 WHERE id = $1', [req.user.id, await bcrypt.hash(next, 12)]);
+      await endOtherSessions(db, req.user.id, req.sessionID);
       await audit(db, req.user.id, 'auth.change_password', 'user', req.user.id);
-      req.flash('success', 'Password changed.');
+      req.flash('success', 'Password changed. Any other devices signed in to your account have been signed out.');
     }
     res.redirect(back);
   });
@@ -135,3 +149,4 @@ module.exports = (db) => {
 };
 
 module.exports.checkPassword = checkPassword;
+module.exports.endOtherSessions = endOtherSessions;

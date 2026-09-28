@@ -32,6 +32,7 @@ module.exports = {
     if (env.DATABASE_SSL === 'false') return false;
     return !isLocalHost(connectionString);
   },
+  databaseSslVerify: env.DATABASE_SSL_VERIFY !== 'false',
 
   // Clinic wall-clock zone: slot times are stored and shown in this zone.
   timeZone: env.CLINIC_TIMEZONE || 'Europe/London',

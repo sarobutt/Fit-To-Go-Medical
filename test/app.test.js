@@ -49,6 +49,40 @@ test('form posts without a CSRF token are rejected', async () => {
   assert.equal(res.status, 403);
 });
 
+test('patient pages are never kept in the browser cache', async () => {
+  const agent = await login(ctx.app, 'pat@test.io');
+  for (const path of ['/patient', '/patient/appointments', '/patient/profile']) {
+    assert.equal((await agent.get(path)).headers['cache-control'], 'no-store', path);
+  }
+  const staff = await login(ctx.app, 'doc@test.io');
+  assert.equal((await staff.get('/doctor')).headers['cache-control'], 'no-store');
+});
+
+test('one connection guessing passwords across many accounts is blocked', async () => {
+  const agent = request.agent(ctx.app);
+  const csrf = csrfFrom((await agent.get('/login')).text);
+  for (let i = 0; i < 30; i++) {
+    const res = await agent.post('/login').type('form').send({ _csrf: csrf, email: `victim${i}@test.io`, password: 'Password1' });
+    assert.equal(res.status, 401);
+  }
+  // Even the right password for a real account is refused from this connection for now.
+  const blocked = await agent.post('/login').type('form').send({ _csrf: csrf, email: 'pat@test.io', password: 'Password123!' });
+  assert.equal(blocked.status, 429);
+  const staffPage = await agent.post('/staff/login').type('form').send({ _csrf: csrf, email: 'doc@test.io', password: 'Password123!' });
+  assert.equal(staffPage.status, 429);
+});
+
+test('changing your password signs you out on other devices', async () => {
+  const phone = await login(ctx.app, 'pat@test.io');
+  const laptop = await login(ctx.app, 'pat@test.io');
+  const res = await laptop.post$('/account/password', { current_password: 'Password123!', new_password: 'brand-new-password' });
+  assert.equal(res.status, 302);
+  assert.equal((await laptop.get('/patient')).status, 200);
+  const other = await phone.get('/patient');
+  assert.equal(other.status, 302);
+  assert.equal(other.headers.location, '/login');
+});
+
 test('patient registers, books, pays via Stripe and the booking is confirmed', async () => {
   const slot = await addSlot(ctx.db, { ...ctx, startsAt: inDays(3, '10:00'), endsAt: inDays(3, '10:15') });
 

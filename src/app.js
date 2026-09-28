@@ -52,7 +52,17 @@ function createApp(pool) {
     // Send the page address only within this site, so "go back" after an error returns to the right page.
     referrerPolicy: { policy: 'same-origin' },
   }));
+  // On the live site, always use an encrypted (https) connection.
+  if (config.isProduction) {
+    app.use((req, res, next) => (req.secure ? next() : res.redirect(301, `https://${req.get('host')}${req.originalUrl}`)));
+  }
   app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: config.isProduction ? '1d' : 0 }));
+  // Pages with personal or medical details must not be kept in the browser's cache
+  // (e.g. the back button on a shared computer after signing out).
+  app.use(['/patient', '/payments', '/login', '/register', '/account'], (req, res, next) => {
+    res.set('Cache-Control', 'no-store');
+    next();
+  });
 
   // Stripe webhooks need the raw body for signature checks, so mount before the form parser.
   app.use('/webhooks', require('./routes/webhooks')(db));
