@@ -1,3 +1,4 @@
+const bcrypt = require('bcryptjs');
 const config = require('./config');
 const { createPool, migrate } = require('./db');
 const { createApp } = require('./app');
@@ -16,10 +17,31 @@ function checkProductionSettings() {
   if (problems.length) throw new Error(`Not starting - fix these settings first:\n- ${problems.join('\n- ')}`);
 }
 
+/**
+ * First start of a fresh database: create the first administrator from ADMIN_EMAIL / ADMIN_PASSWORD.
+ * That password only works once - they must choose a new one at first sign-in.
+ * No sample clinics, tests or demo accounts are added.
+ */
+async function ensureFirstAdmin(pool) {
+  const email = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+  const password = process.env.ADMIN_PASSWORD || '';
+  const { rowCount } = await pool.query(`SELECT 1 FROM users WHERE role = 'admin' LIMIT 1`);
+  if (rowCount) return;
+  if (!email || password.length < 12) {
+    console.warn('No administrator yet. Set ADMIN_EMAIL and ADMIN_PASSWORD (12+ characters) and restart to create one.');
+    return;
+  }
+  await pool.query(
+    `INSERT INTO users (role, name, email, password_hash, must_change_password)
+     VALUES ('admin', 'Clinic Administrator', $1, $2, TRUE)`, [email, await bcrypt.hash(password, 12)]);
+  console.log(`Created the first administrator (${email}). Sign in at ${config.appUrl}/staff/login.`);
+}
+
 async function main() {
   checkProductionSettings();
   const pool = createPool();
   await migrate(pool);
+  await ensureFirstAdmin(pool);
   const app = createApp(pool);
   app.listen(config.port, () => {
     console.log(`${config.siteName} running at ${config.appUrl}`);
