@@ -375,8 +375,10 @@ module.exports = (db) => {
     const payments = await db.all(
       `SELECT p.*, a.reference FROM payments p JOIN appointments a ON a.id = p.appointment_id
         WHERE a.patient_id = $1 ORDER BY p.created_at DESC`, [patient.id]);
+    const openRequest = await db.one(
+      `SELECT * FROM data_requests WHERE user_id = $1 AND status = 'open' ORDER BY id DESC LIMIT 1`, [patient.id]);
     await audit(db, req.user.id, 'patient.view_record', 'user', patient.id);
-    res.render('admin/patient', { title: patient.name, patient, appointments, payments });
+    res.render('admin/patient', { title: patient.name, patient, appointments, payments, openRequest });
   });
 
   router.post('/patients/:id', async (req, res) => {
@@ -519,6 +521,58 @@ module.exports = (db) => {
     if (!['block', 'unblock'].includes(req.params.action)) return next();
     await availability.setSlotBlocked(db, { slotId: id(req.params.id), blocked: req.params.action === 'block', actorId: req.user.id });
     res.redirect(backUrl(req, '/admin/availability'));
+  });
+
+  // ---------- Patients' data requests ----------
+  router.get('/requests', async (req, res) => {
+    const requests = await db.all(
+      `SELECT r.*, u.name AS patient_name, u.email AS patient_email, u.role, rb.name AS resolved_by_name
+         FROM data_requests r JOIN users u ON u.id = r.user_id LEFT JOIN users rb ON rb.id = r.resolved_by
+        ORDER BY (r.status = 'open') DESC, r.created_at DESC LIMIT 200`);
+    res.render('admin/requests', { title: 'Data requests', requests });
+  });
+
+  router.post('/requests/:id/resolve', async (req, res) => {
+    const status = req.body.status === 'declined' ? 'declined' : 'done';
+    const resolution = text(req.body.resolution, 1000);
+    if (!resolution) throw new ValidationError('Write down what was done, so there is a record of it.');
+    const r = await db.one(
+      `UPDATE data_requests SET status = $2, resolution = $3, resolved_by = $4, resolved_at = now()
+        WHERE id = $1 AND status = 'open' RETURNING *`, [id(req.params.id), status, resolution, req.user.id]);
+    if (!r) throw new ValidationError('That request has already been dealt with.');
+    await audit(db, req.user.id, `data_request.${status}`, 'user', r.user_id, { request: r.id });
+    req.flash('success', 'Request updated.');
+    res.redirect('/admin/requests');
+  });
+
+  /**
+   * Removes a patient's identifying details and closes their account. Their appointment,
+   * payment and clinical history stays (with no name attached) for the legally required retention period.
+   */
+  router.post('/patients/:id/anonymise', async (req, res) => {
+    const patientId = id(req.params.id);
+    if (text(req.body.confirm, 20).toUpperCase() !== 'DELETE') {
+      throw new ValidationError('Type DELETE in the box to confirm.');
+    }
+    const live = await db.one(
+      `SELECT 1 FROM appointments WHERE patient_id = $1 AND status IN ('pending_payment', 'confirmed', 'checked_in')`,
+      [patientId]);
+    if (live) throw new ValidationError('This patient has upcoming or open appointments. Cancel or complete them first.');
+    const u = await db.one(
+      `UPDATE users SET name = 'Deleted patient', email = 'deleted-' || id || '@invalid.example',
+              phone = NULL, date_of_birth = NULL, is_active = FALSE, password_hash = $2
+        WHERE id = $1 AND role = 'patient' RETURNING id`,
+      [patientId, await bcrypt.hash(crypto.randomBytes(24).toString('hex'), 4)]);
+    if (!u) throw new ValidationError('Patient not found.');
+    await endSessions(db, patientId);
+    await db.query(`UPDATE password_resets SET used_at = now() WHERE user_id = $1 AND used_at IS NULL`, [patientId]);
+    await db.query(
+      `UPDATE data_requests SET status = 'done', resolved_by = $2, resolved_at = now(),
+              resolution = COALESCE(resolution, 'Personal details removed and account closed.')
+        WHERE user_id = $1 AND status = 'open'`, [patientId, req.user.id]);
+    await audit(db, req.user.id, 'patient.anonymise', 'user', patientId);
+    req.flash('success', 'The patient\'s personal details have been removed and their account closed.');
+    res.redirect(`/admin/patients/${patientId}`);
   });
 
   // ---------- Payments & audit ----------

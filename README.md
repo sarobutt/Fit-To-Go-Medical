@@ -24,6 +24,13 @@ The doctor and admin areas are private:
 **Forgotten password:** another admin opens the person's page and clicks **Reset password**. If the *only* admin is locked out, run this on the server:
 `npm run staff:reset -- their@email.com`. It prints a new temporary password.
 
+## Patients' data rights
+
+- **Forgot password:** patients get a single-use link by email, valid for one hour. Only a scrambled (hashed) copy of the link is stored. The page never reveals whether an email address has an account. This needs email set up; without it, patients are told to contact the clinic.
+- **Download my data:** under *My details*, patients download everything held about them as a file.
+- **Delete my account:** patients send a request, which appears under **Admin → Requests** with the one-month reply deadline. When deletion is approved, **Remove personal details** on the patient's record strips their name, email, phone and date of birth and closes the account. Clinical and payment records stay, without a name attached, for the legally required retention period.
+- **Privacy policy** at `/privacy`: a draft. Fill in everything in [square brackets] and have it checked. Then set `PRIVACY_POLICY_FINAL=true` to hide the "draft" notice.
+
 ## Consultation record, report and certificate
 
 When a patient has been checked in, the doctor fills in the **consultation record** on the appointment page. They only fill in what applies to the test, and can **save progress** as they go:
@@ -76,6 +83,20 @@ The tables are created automatically the first time the app or the seed script r
 3. Copy the endpoint's **signing secret** (`whsec_...`).
 
 ### 3. Deploy the website
+
+**Easiest: Render Blueprint.** In Render, choose **New → Blueprint** and pick this repository. `render.yaml` sets everything up:
+- only the `main` branch goes live
+- the exact library versions from `package-lock.json` are installed
+- Node 22 is used
+- the site runs in an EU data centre
+- a health check at `/healthz` keeps the old version running until a new one is working
+- `SESSION_SECRET` is generated for you
+
+Render then asks for the secret values listed below.
+
+**Keeping it running safely.** GitHub runs all the tests on every change (`.github/workflows/ci.yml`). Once a month, Dependabot opens a pull request with library updates. Merge anything into `main` only when its tests show ✅. If a deploy goes wrong, use **Rollback** in Render.
+
+**Any other Node host**
 
 Any Node host works: Render, Railway, Fly.io, Heroku, or a VPS. Set these environment variables (see `.env.example`):
 

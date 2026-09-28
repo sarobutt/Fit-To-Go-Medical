@@ -1,0 +1,47 @@
+<%- include('partials/header') %>
+<article class="card prose" style="max-width:820px;margin:0 auto">
+  <h1>Privacy policy</h1>
+  <p class="muted">Last updated: [date]</p>
+  <% if (!process.env.PRIVACY_POLICY_FINAL) { %>
+    <p class="flash info">Draft – replace the words in [square brackets] and have it checked before the website goes live.</p>
+  <% } %>
+
+  <h2>Who we are</h2>
+  <p><%= siteName %> is run by [clinic's legal name], [registered address]. We are the data controller for the personal information described here. ICO registration number: [number]. Contact us about your data at [privacy email address].</p>
+
+  <h2>What we collect</h2>
+  <ul>
+    <li><strong>Your account details:</strong> name, email address, phone number and date of birth.</li>
+    <li><strong>Your appointments:</strong> the tests you book, the clinic, date and time, and whether you attended.</li>
+    <li><strong>Health information:</strong> what the doctor records during your appointment, such as vital signs, medical history, test findings and the outcome, and the report and certificate we produce.</li>
+    <li><strong>Payments:</strong> the amount, date and status of your payments. Card details are handled by Stripe and are never seen or stored by us.</li>
+    <li><strong>Security records:</strong> when you sign in, and a log of who at the clinic viewed or changed your records.</li>
+  </ul>
+
+  <h2>Why we use it, and our legal basis</h2>
+  <ul>
+    <li>To book, carry out and charge for your tests, and to give you your results – to perform our contract with you.</li>
+    <li>Health information is used to provide health care, under UK GDPR Article 9(2)(h), by or under the responsibility of registered health professionals.</li>
+    <li>To keep medical and financial records for as long as the law requires – a legal obligation.</li>
+    <li>To keep our systems secure – our legitimate interests.</li>
+  </ul>
+  <p>We do not sell your data or use it for marketing.</p>
+
+  <h2>Who we share it with</h2>
+  <p>Only the services we need to run the clinic, under contracts that protect your data: [hosting provider, e.g. Render], [database provider, e.g. Neon], Stripe (payments) and [email provider]. With your consent, or where the law requires it, we may share results with others – for example a laboratory processing your sample[, or public health authorities].</p>
+  <p>[State whether any data is stored outside the UK, and the safeguards used.]</p>
+
+  <h2>How long we keep it</h2>
+  <p>Medical records are kept for [8] years after your last appointment, in line with [NHS / professional] records-retention guidance. Payment records are kept for [6] years for tax purposes. If you close your account, we remove what we are allowed to and keep only what the law requires.</p>
+
+  <h2>Your rights</h2>
+  <p>You can ask to see, correct or delete your data, to restrict or object to how we use it, and to receive a copy to take elsewhere. You can download your data and ask us to delete your account from <strong>My details</strong> when signed in, or contact [privacy email address]. We reply within one month.</p>
+  <p>If you're unhappy with how we handle your data, you can complain to the Information Commissioner's Office at ico.org.uk.</p>
+
+  <h2>Cookies</h2>
+  <p>We use one essential cookie to keep you signed in and to protect forms from misuse. We don't use advertising or tracking cookies, so we don't ask for cookie consent.</p>
+
+  <h2>Keeping your data safe</h2>
+  <p>Your data is sent over encrypted connections and stored in an encrypted database. Passwords are stored in a form that can't be reversed. Clinic staff can only see what their role needs, and access to records is logged. Documents we email to you are protected with a password.</p>
+</article>
+<%- include('partials/footer') %>

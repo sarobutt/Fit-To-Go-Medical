@@ -1,0 +1,42 @@
+# Render setup for the live site. In Render: New → Blueprint → pick this repository.
+# Secret values (marked sync: false) are entered in Render's dashboard, never in this file.
+services:
+  - type: web
+    name: fit-to-go-medical
+    runtime: node
+    region: frankfurt        # EU data centre (Render has no UK region)
+    plan: starter            # always on; the free plan sleeps when idle
+    branch: main             # only the main branch goes live
+    autoDeploy: true
+    buildCommand: npm ci     # installs the exact library versions in package-lock.json
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false

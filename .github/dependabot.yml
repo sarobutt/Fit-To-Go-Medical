@@ -1,0 +1,17 @@
+# Suggests library updates once a month, grouped into one pull request.
+# The tests run on it automatically; merge it only when they pass.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      libraries:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

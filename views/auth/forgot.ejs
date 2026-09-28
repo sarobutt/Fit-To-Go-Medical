@@ -1,0 +1,20 @@
+<%- include('../partials/header') %>
+<div class="card auth-card">
+  <h1>Reset your password</h1>
+  <% if (!emailOn) { %>
+    <p class="muted">Online password resets aren't available at the moment. Please contact the clinic and they'll reset it for you.</p>
+    <a class="btn secondary" href="/clinics">Clinic contact details</a>
+  <% } else if (sent) { %>
+    <p>If an account exists for that email address, we've sent a link to reset your password. It works for one hour.</p>
+    <p class="small muted">Didn't get it? Check your spam folder, or wait a few minutes and try again.</p>
+    <a class="btn secondary" href="/login">Back to sign in</a>
+  <% } else { %>
+    <p class="muted">Enter the email address you use to sign in, and we'll email you a link to choose a new password.</p>
+    <form method="post" action="/forgot-password">
+      <%- include('../partials/csrf') %>
+      <div class="field"><label for="email">Email</label><input id="email" type="email" name="email" autocomplete="email" required autofocus></div>
+      <button class="btn block">Email me a reset link</button>
+    </form>
+  <% } %>
+</div>
+<%- include('../partials/footer') %>

@@ -29,6 +29,9 @@
     <% } %>
   </div>
 </div>
+<% if (openRequest) { %>
+  <div class="flash info">This patient asked for their account to be deleted on <%= time.formatDateTime(openRequest.created_at) %>. <a href="/admin/requests">Open data requests</a></div>
+<% } %>
 <div class="card flush">
   <h2>Appointments & results</h2>
   <% if (!appointments.length) { %><div class="empty">No appointments.</div><% } else { %>
@@ -49,4 +52,15 @@
   </table></div>
   <% } %>
 </div>
+<% if (patient.is_active || patient.email.indexOf('@invalid.example') === -1) { %>
+<div class="card" style="margin-top:16px;max-width:720px">
+  <h2>Remove personal details</h2>
+  <p class="small muted">Use this when a deletion request is approved. The patient's name, email, phone and date of birth are removed and the account is closed. Appointment, payment and clinical records stay, without a name attached, for the legally required retention period. This can't be undone.</p>
+  <form method="post" action="/admin/patients/<%= patient.id %>/anonymise" data-confirm="Remove this patient's personal details? This can't be undone.">
+    <%- include('../partials/csrf') %>
+    <div class="field"><label for="confirm">Type DELETE to confirm</label><input id="confirm" name="confirm" type="text" autocomplete="off" required style="max-width:200px"></div>
+    <button class="btn danger">Remove personal details</button>
+  </form>
+</div>
+<% } %>
 <%- include('../partials/footer') %>

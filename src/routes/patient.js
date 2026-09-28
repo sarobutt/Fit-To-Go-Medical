@@ -105,8 +105,50 @@ module.exports = (db) => {
     res.redirect(`/patient/appointments/${appt.id}`);
   });
 
-  router.get('/profile', (req, res) => {
-    res.render('patient/profile', { title: 'My details' });
+  router.get('/profile', async (req, res) => {
+    const openRequest = await db.one(
+      `SELECT * FROM data_requests WHERE user_id = $1 AND status = 'open' ORDER BY id DESC LIMIT 1`, [req.user.id]);
+    res.render('patient/profile', { title: 'My details', openRequest });
+  });
+
+  // Right of access: everything held about the patient, as a file they can keep.
+  router.get('/my-data.json', async (req, res) => {
+    const id = req.user.id;
+    const profile = await db.one(
+      'SELECT name, email, phone, date_of_birth, created_at FROM users WHERE id = $1', [id]);
+    const appointments = await db.all(
+      `SELECT a.reference, a.status, t.name AS test, s.starts_at, c.name AS clinic, d.name AS doctor,
+              a.price_pence, a.result_summary, a.checked_in_at, a.completed_at, a.cancelled_at, a.cancel_reason,
+              a.created_at, co.outcome, co.data AS consultation
+         FROM appointments a
+         JOIN slots s ON s.id = a.slot_id JOIN tests t ON t.id = a.test_id
+         JOIN clinics c ON c.id = s.clinic_id JOIN users d ON d.id = s.doctor_id
+         LEFT JOIN consultations co ON co.appointment_id = a.id AND co.finalised_at IS NOT NULL
+        WHERE a.patient_id = $1 AND a.status <> 'expired' ORDER BY s.starts_at`, [id]);
+    const paymentRows = await db.all(
+      `SELECT a.reference, p.amount_pence, p.currency, p.status, p.paid_at, p.refunded_at
+         FROM payments p JOIN appointments a ON a.id = p.appointment_id
+        WHERE a.patient_id = $1 AND p.status IN ('paid', 'refunded') ORDER BY p.created_at`, [id]);
+    await audit(db, id, 'patient.export_data', 'user', id);
+    res.set('Content-Disposition', 'attachment; filename="my-fit-to-go-data.json"');
+    res.json({
+      exported_at: new Date().toISOString(),
+      note: 'Your personal data held by the clinic. Doctors\' private clinical notes are available on request from the clinic.',
+      profile, appointments, payments: paymentRows,
+    });
+  });
+
+  // Right to erasure: recorded for an admin, because medical records must be kept for a legal minimum period.
+  router.post('/delete-request', async (req, res) => {
+    const existing = await db.one(
+      `SELECT 1 FROM data_requests WHERE user_id = $1 AND status = 'open'`, [req.user.id]);
+    if (!existing) {
+      await db.query(`INSERT INTO data_requests (user_id, kind, details) VALUES ($1, 'deletion', $2)`,
+        [req.user.id, String(req.body.details || '').trim().slice(0, 1000) || null]);
+      await audit(db, req.user.id, 'patient.request_deletion', 'user', req.user.id);
+    }
+    req.flash('success', 'We\'ve received your request. The clinic will reply within one month.');
+    res.redirect('/patient/profile');
   });
 
   router.post('/profile', async (req, res) => {

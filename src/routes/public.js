@@ -19,5 +19,17 @@ module.exports = (db) => {
     res.render('clinics', { title: 'Our clinics', clinics });
   });
 
+  // For the hosting service: answers 200 only when the site can reach its database.
+  router.get('/healthz', async (req, res) => {
+    try {
+      await db.one('SELECT 1 AS ok');
+      res.set('Cache-Control', 'no-store').json({ status: 'ok' });
+    } catch {
+      res.status(503).json({ status: 'database unavailable' });
+    }
+  });
+
+  router.get('/privacy', (req, res) => res.render('privacy', { title: 'Privacy policy' }));
+
   return router;
 };

@@ -1,0 +1,35 @@
+# Runs the full test suite on every push and pull request, against a real Postgres database.
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: fitogo
+          POSTGRES_PASSWORD: fitogo
+          POSTGRES_DB: fitogo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fitogo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://fitogo:fitogo@localhost:5432/fitogo_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm test

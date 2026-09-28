@@ -15,5 +15,21 @@
     </form>
   </div>
   <%- include('../partials/password') %>
+  <div class="card">
+    <h2>Your data</h2>
+    <p class="muted">You can download everything we hold about you, or ask us to delete your account.</p>
+    <p><a class="btn secondary" href="/patient/my-data.json">Download my data</a></p>
+    <h3 style="margin-top:18px">Delete my account</h3>
+    <% if (openRequest) { %>
+      <p class="small">You asked us to delete your account on <%= time.formatDateTime(openRequest.created_at) %>. The clinic will reply within one month.</p>
+    <% } else { %>
+      <p class="small muted">By law, medical records have to be kept for a minimum period, so the clinic will tell you what can be deleted and what must be kept.</p>
+      <form method="post" action="/patient/delete-request" data-confirm="Send a request to delete your account?">
+        <%- include('../partials/csrf') %>
+        <div class="field"><label for="details">Anything we should know? <span class="hint">(optional)</span></label><textarea id="details" name="details"></textarea></div>
+        <button class="btn danger">Request account deletion</button>
+      </form>
+    <% } %>
+  </div>
 </div>
 <%- include('../partials/footer') %>

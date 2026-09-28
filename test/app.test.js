@@ -410,3 +410,66 @@ test('doctor records the consultation and the patient gets a report and certific
   assert.equal(rec.outcome, 'fit');
   assert.ok(rec.amended_at);
 });
+
+test('a patient resets a forgotten password with a single-use emailed link', async () => {
+  const agent = request.agent(ctx.app);
+  const csrf = csrfFrom((await agent.get('/forgot-password')).text);
+  // Unknown and staff emails get the same answer, and no email is sent.
+  for (const email of ['nobody@test.io', 'doc@test.io']) {
+    const res = await agent.post('/forgot-password').type('form').send({ _csrf: csrf, email });
+    assert.match(res.text, /If an account exists for that email address/);
+  }
+  assert.equal(ctx.mail.length, 0);
+
+  await agent.post('/forgot-password').type('form').send({ _csrf: csrf, email: 'PAT@test.io' });
+  assert.equal(ctx.mail.length, 1);
+  const link = ctx.mail[0].text.match(/http:\/\/localhost:3000(\/reset-password\/\S+)/)[1];
+  const stored = await ctx.db.one('SELECT token_hash FROM password_resets');
+  assert.ok(!link.includes(stored.token_hash), 'only a hash of the token is stored');
+
+  const signedIn = await login(ctx.app, 'pat@test.io'); // an existing session elsewhere
+  const page = await agent.get(link);
+  assert.equal(page.status, 200);
+  const done = await agent.post(link).type('form')
+    .send({ _csrf: csrfFrom(page.text), new_password: 'fresh-password-1', confirm_password: 'fresh-password-1' });
+  assert.equal(done.headers.location, '/login');
+  assert.equal((await agent.get(link)).status, 400, 'link works only once');
+  assert.equal((await signedIn.get('/patient')).status, 302, 'other sessions signed out');
+  await login(ctx.app, 'pat@test.io', { password: 'fresh-password-1' });
+});
+
+test('patients can download their data and ask for deletion; admins can remove personal details', async () => {
+  const pat = await login(ctx.app, 'pat@test.io');
+  const data = await pat.get('/patient/my-data.json');
+  assert.equal(data.status, 200);
+  assert.match(data.headers['content-disposition'], /attachment/);
+  assert.equal(data.body.profile.email, 'pat@test.io');
+
+  await pat.post$('/patient/delete-request', { details: 'Moving abroad' });
+  await pat.post$('/patient/delete-request', {}); // a second click doesn't duplicate it
+  assert.equal((await ctx.db.one(`SELECT COUNT(*) AS n FROM data_requests`)).n, 1);
+  assert.match((await pat.get('/patient/profile')).text, /You asked us to delete your account/);
+
+  const admin = await login(ctx.app, 'admin@test.io');
+  assert.match((await admin.get('/admin/requests')).text, /Moving abroad/);
+  const wrong = await admin.post$(`/admin/patients/${ctx.patient.id}/anonymise`, { confirm: 'yes' });
+  assert.equal(wrong.status, 302);
+  assert.equal((await ctx.db.one('SELECT name FROM users WHERE id = $1', [ctx.patient.id])).name, 'Pat One');
+
+  await admin.post$(`/admin/patients/${ctx.patient.id}/anonymise`, { confirm: 'DELETE' });
+  const u = await ctx.db.one('SELECT * FROM users WHERE id = $1', [ctx.patient.id]);
+  assert.equal(u.name, 'Deleted patient');
+  assert.equal(u.is_active, false);
+  assert.equal(u.phone, null);
+  assert.equal((await ctx.db.one('SELECT status FROM data_requests')).status, 'done');
+  assert.equal((await pat.get('/patient')).status, 302, 'signed out');
+});
+
+test('health check and privacy page', async () => {
+  const health = await request(ctx.app).get('/healthz');
+  assert.equal(health.status, 200);
+  assert.deepEqual(health.body, { status: 'ok' });
+  const privacy = await request(ctx.app).get('/privacy');
+  assert.equal(privacy.status, 200);
+  assert.match(privacy.text, /Your rights/);
+});

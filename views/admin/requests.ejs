@@ -1,0 +1,29 @@
+<%- include('../partials/header') %>
+<div class="page-head"><div><h1>Data requests</h1><p class="muted">Patients' requests about their personal data. By law you must reply within one month.</p></div></div>
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Received</th><th>Patient</th><th>Request</th><th>Status</th><th>What was done</th></tr></thead>
+  <tbody>
+  <% for (const r of requests) { %>
+    <tr>
+      <td class="nowrap"><%= time.formatDateTime(r.created_at) %><% if (r.status === 'open') { %><div class="small muted">Reply by <%= time.formatDate(new Date(new Date(r.created_at).getTime() + 30 * 86400000).toISOString()) %></div><% } %></td>
+      <td><a href="/admin/patients/<%= r.user_id %>"><%= r.patient_name %></a><div class="small muted"><%= r.patient_email %></div></td>
+      <td>Delete account<% if (r.details) { %><div class="small muted"><%= r.details %></div><% } %></td>
+      <td><span class="badge <%= r.status === 'open' ? 'pending' : (r.status === 'done' ? 'active' : 'inactive') %>"><%= { open: 'Open', done: 'Done', declined: 'Declined' }[r.status] %></span></td>
+      <td style="min-width:280px">
+        <% if (r.status === 'open') { %>
+          <form method="post" action="/admin/requests/<%= r.id %>/resolve">
+            <%- include('../partials/csrf') %>
+            <div class="field"><label for="res<%= r.id %>" class="small">Note</label><textarea id="res<%= r.id %>" name="resolution" placeholder="e.g. Personal details removed; clinical records kept for 8 years as required" required></textarea></div>
+            <div class="row"><button class="btn small" name="status" value="done">Mark done</button><button class="btn small secondary" name="status" value="declined">Decline</button></div>
+          </form>
+          <p class="small muted" style="margin-top:6px">To remove their details, open the patient's record and use <strong>Remove personal details</strong>.</p>
+        <% } else { %>
+          <%= r.resolution %><div class="small muted"><%= r.resolved_by_name || '' %><%= r.resolved_at ? ' · ' + time.formatDateTime(r.resolved_at) : '' %></div>
+        <% } %>
+      </td>
+    </tr>
+  <% } %>
+  <% if (!requests.length) { %><tr><td colspan="5" class="empty">No requests.</td></tr><% } %>
+  </tbody>
+</table></div></div>
+<%- include('../partials/footer') %>

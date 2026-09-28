@@ -1,0 +1,11 @@
+<%- include('../partials/header') %>
+<div class="card auth-card">
+  <h1>Choose a new password</h1>
+  <form method="post" action="/reset-password/<%= token %>">
+    <%- include('../partials/csrf') %>
+    <div class="field"><label for="new">New password <span class="hint">(8+ characters)</span></label><input id="new" type="password" name="new_password" minlength="8" autocomplete="new-password" required autofocus></div>
+    <div class="field"><label for="confirm">Confirm new password</label><input id="confirm" type="password" name="confirm_password" minlength="8" autocomplete="new-password" required></div>
+    <button class="btn block">Save new password</button>
+  </form>
+</div>
+<%- include('../partials/footer') %>

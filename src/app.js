@@ -59,7 +59,7 @@ function createApp(pool) {
   app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: config.isProduction ? '1d' : 0 }));
   // Pages with personal or medical details must not be kept in the browser's cache
   // (e.g. the back button on a shared computer after signing out).
-  app.use(['/patient', '/payments', '/login', '/register', '/account'], (req, res, next) => {
+  app.use(['/patient', '/payments', '/login', '/register', '/account', '/forgot-password', '/reset-password'], (req, res, next) => {
     res.set('Cache-Control', 'no-store');
     next();
   });
@@ -86,6 +86,7 @@ function createApp(pool) {
 
   app.use('/', require('./routes/public')(db));
   app.use('/', require('./routes/auth')(db));
+  app.use('/', require('./routes/password-reset')(db));
   app.use('/payments', require('./routes/payments')(db));
   app.use('/patient', require('./routes/patient')(db));
   app.use('/staff', staffArea, require('./routes/staff')(db));
