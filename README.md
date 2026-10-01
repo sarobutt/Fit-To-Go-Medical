@@ -96,6 +96,8 @@ Render then asks for the secret values listed below.
 
 **Keeping it running safely.** GitHub runs all the tests on every change (`.github/workflows/ci.yml`). Once a month, Dependabot opens a pull request with library updates. Merge anything into `main` only when its tests show ✅. If a deploy goes wrong, use **Rollback** in Render.
 
+**Uptime monitoring.** `.github/workflows/uptime.yml` checks `/healthz` every 30 minutes, retrying 3 times so a brief blip doesn't count. If the site is down it opens a GitHub issue "🚨 Website is down", which emails you, and it closes the issue when the site is back. To switch it on, go to **Settings → Secrets and variables → Actions → Variables** in GitHub and add `SITE_URL` = `https://yourdomain`. For faster alerts (every 5 minutes, by email or the mobile app), also add a free monitor at uptimerobot.com for `https://yourdomain/healthz`.
+
 **Any other Node host**
 
 Any Node host works: Render, Railway, Fly.io, Heroku, or a VPS. Set these environment variables (see `.env.example`):

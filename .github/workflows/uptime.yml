@@ -1,0 +1,82 @@
+# Checks the live website every 30 minutes. If it's down, opens a GitHub issue
+# (which emails the repository owner); when it's back up, comments and closes it.
+#
+# Turn it on by adding a repository variable SITE_URL (e.g. https://fittogomedical.co.uk) under
+# Settings → Secrets and variables → Actions → Variables. Until then it does nothing.
+name: Uptime check
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SITE_URL: ${{ vars.SITE_URL }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TITLE: "🚨 Website is down"
+    steps:
+      - name: Check the site's health page
+        id: health
+        run: |
+          if [ -z "$SITE_URL" ]; then
+            echo "SITE_URL isn't set yet – nothing to check."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          url="${SITE_URL%/}/healthz"
+          # Three tries, a minute apart, so a brief blip or a deploy doesn't raise an alarm.
+          for attempt in 1 2 3; do
+            rm -f /tmp/body
+            code=$(curl -s -o /tmp/body -w '%{http_code}' --max-time 20 "$url") || true
+            code=${code:-000}  # 000 = no answer at all
+            if [ "$code" = "200" ]; then
+              echo "up=true" >> "$GITHUB_OUTPUT"
+              echo "✅ $url answered 200"
+              exit 0
+            fi
+            echo "Attempt $attempt: $url answered $code"
+            [ "$attempt" -lt 3 ] && sleep 60
+          done
+          echo "up=false" >> "$GITHUB_OUTPUT"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "body=$(head -c 200 /tmp/body 2>/dev/null | tr -d '\n')" >> "$GITHUB_OUTPUT"
+
+      - name: Report down
+        if: steps.health.outputs.skip != 'true' && steps.health.outputs.up == 'false'
+        run: |
+          open=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number')
+          details="Checked ${SITE_URL%/}/healthz at $(date -u '+%Y-%m-%d %H:%M UTC'): HTTP ${{ steps.health.outputs.code }} ${{ steps.health.outputs.body }}"
+          if [ -n "$open" ]; then
+            gh issue comment "$open" --body "Still down. $details"
+          else
+            gh issue create --title "$TITLE" --body "$details
+
+          What to check:
+          - Render dashboard → the service's **Logs** and **Events** (a failed deploy can be undone with **Rollback**)
+          - Neon dashboard → is the database running?
+          - \`database unavailable\` above means the site is running but can't reach the database.
+
+          This issue closes itself when the site is back."
+          fi
+          exit 1
+
+      - name: Report recovery
+        if: steps.health.outputs.up == 'true'
+        run: |
+          open=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number')
+          if [ -n "$open" ]; then
+            gh issue comment "$open" --body "✅ Back up at $(date -u '+%Y-%m-%d %H:%M UTC')."
+            gh issue close "$open"
+          fi
