@@ -148,7 +148,7 @@ function appointmentRows(appt) {
 }
 
 function doctorLine(appt) {
-  return appt.registration_number ? `${appt.doctor_name} (Reg. no. ${appt.registration_number})` : appt.doctor_name;
+  return appt.registration_number ? `${appt.doctor_name} (GMC no. ${appt.registration_number})` : appt.doctor_name;
 }
 
 function signature(doc, appt, record) {

@@ -1,17 +1,18 @@
 <%- include('../partials/header') %>
 <div class="page-head"><div><h1>Doctors</h1><p class="muted">Add doctors, assign clinics and control what each doctor can do.</p></div><a class="btn" href="/admin/doctors/new">Add doctor</a></div>
 <div class="card flush"><div class="table-wrap"><table>
-  <thead><tr><th>Doctor</th><th>Clinics</th><% for (const label of Object.values(permissions)) { %><th class="small" style="text-transform:none;letter-spacing:0"><%= label %></th><% } %><th>Status</th></tr></thead>
+  <thead><tr><th>Doctor</th><th>GMC no.</th><th>Clinics</th><% for (const label of Object.values(permissions)) { %><th class="small" style="text-transform:none;letter-spacing:0"><%= label %></th><% } %><th>Status</th></tr></thead>
   <tbody>
   <% for (const d of doctors) { %>
     <tr>
       <td><a href="/admin/doctors/<%= d.id %>"><strong><%= d.name %></strong></a><div class="small muted"><%= d.specialty || d.email %></div></td>
+      <td class="nowrap"><% if (d.registration_number) { %><%= d.registration_number %><% } else { %><span class="badge pending">Missing</span><% } %></td>
       <td class="small"><%= d.clinic_names || '—' %></td>
       <% for (const key of Object.keys(permissions)) { %><td aria-label="<%= d[key] ? 'Allowed' : 'Not allowed' %>"><%= d[key] ? '✔' : '—' %></td><% } %>
       <td><span class="badge <%= d.is_active ? 'active' : 'inactive' %>"><%= d.is_active ? 'Active' : 'Inactive' %></span></td>
     </tr>
   <% } %>
-  <% if (!doctors.length) { %><tr><td colspan="9" class="empty">No doctors yet.</td></tr><% } %>
+  <% if (!doctors.length) { %><tr><td colspan="10" class="empty">No doctors yet.</td></tr><% } %>
   </tbody>
 </table></div></div>
 <%- include('../partials/footer') %>

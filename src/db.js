@@ -36,6 +36,12 @@ CREATE TABLE IF NOT EXISTS doctor_profiles (
 );
 -- Professional registration (e.g. GMC number) printed on reports and certificates.
 ALTER TABLE doctor_profiles ADD COLUMN IF NOT EXISTS registration_number TEXT;
+-- No two doctors may share a GMC number. (Skipped with a notice if existing data already has duplicates.)
+DO $$ BEGIN
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_doctor_gmc ON doctor_profiles (registration_number) WHERE registration_number IS NOT NULL;
+EXCEPTION WHEN unique_violation THEN
+  RAISE NOTICE 'Two doctors share a GMC number - fix this in Admin > Doctors.';
+END $$;
 
 CREATE TABLE IF NOT EXISTS clinics (
   id            SERIAL PRIMARY KEY,

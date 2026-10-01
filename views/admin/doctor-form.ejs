@@ -29,7 +29,8 @@
         <div class="field"><label for="phone">Phone</label><input id="phone" name="phone" type="tel" value="<%= doctor.phone || '' %>"></div>
         <div class="field"><label for="specialty">Specialty</label><input id="specialty" name="specialty" type="text" value="<%= doctor.specialty || '' %>" placeholder="GP, Occupational health…"></div>
       </div>
-      <div class="field"><label for="reg">Registration number <span class="hint">(e.g. GMC number – printed on reports and certificates)</span></label><input id="reg" name="registration_number" type="text" value="<%= doctor.registration_number || '' %>"></div>
+      <div class="field"><label for="reg">GMC number <span class="hint">(required – 7 digits, printed on every report and certificate)</span></label><input id="reg" name="registration_number" type="text" inputmode="numeric" pattern="\D*\d{7}\D*" maxlength="12" placeholder="1234567" value="<%= doctor.registration_number || '' %>" required>
+        <span class="hint">Check it on the <a href="https://www.gmc-uk.org/registration-and-licensing/the-medical-register" target="_blank" rel="noopener">GMC medical register</a>.</span></div>
       <div class="field"><label for="bio">Bio</label><textarea id="bio" name="bio"><%= doctor.bio || '' %></textarea></div>
       <% if (!doctor.id) { %>
         <div class="field"><label for="password">Temporary password <span class="hint">(leave blank to generate one; they must change it at first sign-in)</span></label><input id="password" name="password" type="text" minlength="8" autocomplete="off"></div>

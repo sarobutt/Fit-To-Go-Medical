@@ -29,7 +29,7 @@ function loadUser(db) {
       const user = await db.one(
         `SELECT u.id, u.role, u.name, u.email, u.phone, u.date_of_birth, u.is_active, u.must_change_password,
                 dp.can_manage_availability, dp.can_check_in, dp.can_record_results,
-                dp.can_view_patient_history, dp.can_cancel_appointments, dp.specialty
+                dp.can_view_patient_history, dp.can_cancel_appointments, dp.specialty, dp.registration_number
            FROM users u LEFT JOIN doctor_profiles dp ON dp.user_id = u.id
           WHERE u.id = $1`,
         [req.session.userId],

@@ -72,7 +72,7 @@ async function setup() {
   currentDb = db;
   const patient = await mkUser('patient', 'Pat One', 'pat@test.io');
   const patient2 = await mkUser('patient', 'Pat Two', 'pat2@test.io');
-  await db.query('INSERT INTO doctor_profiles (user_id) VALUES ($1)', [doctor.id]);
+  await db.query(`INSERT INTO doctor_profiles (user_id, registration_number) VALUES ($1, '1234567')`, [doctor.id]);
   const clinic = await db.one(`INSERT INTO clinics (name, address, city) VALUES ('Central', '1 High St', 'Leeds') RETURNING *`);
   await db.query('INSERT INTO doctor_clinics VALUES ($1, $2)', [doctor.id, clinic.id]);
   const test = await db.one(`INSERT INTO tests (name, price_pence) VALUES ('Blood test', 4900) RETURNING *`);

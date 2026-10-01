@@ -231,11 +231,54 @@ module.exports = (db) => {
 
   router.get('/doctors/new', async (req, res) => {
     const clinics = await db.all('SELECT * FROM clinics ORDER BY name');
+    const draft = takeDoctorDraft(req, '/admin/doctors/new');
     res.render('admin/doctor-form', {
-      title: 'Add a doctor', doctor: { can_manage_availability: true, can_check_in: true, can_record_results: true, can_view_patient_history: true },
-      clinics, assigned: [], permissions: DOCTOR_PERMISSIONS, stats: null,
+      title: 'Add a doctor',
+      doctor: draft || { can_manage_availability: true, can_check_in: true, can_record_results: true, can_view_patient_history: true },
+      clinics, assigned: draft ? draft.clinic_ids : [], permissions: DOCTOR_PERMISSIONS, stats: null,
     });
   });
+
+  /**
+   * GMC reference numbers are 7 digits. Accepts "GMC 1234567" or spaces, and stores just the digits.
+   * Required for every doctor, and no two doctors may share one.
+   */
+  async function checkGmc(body, doctorId = 0) {
+    const gmc = String(body.registration_number || '').replace(/\D/g, '');
+    if (!/^\d{7}$/.test(gmc)) throw new ValidationError('Enter the doctor\'s GMC number – 7 digits, e.g. 1234567.');
+    const taken = await db.one(
+      `SELECT u.name FROM doctor_profiles dp JOIN users u ON u.id = dp.user_id
+        WHERE dp.registration_number = $1 AND dp.user_id <> $2`, [gmc, doctorId]);
+    if (taken) throw new ValidationError(`GMC number ${gmc} is already used by ${taken.name}.`);
+    return gmc;
+  }
+
+  /** Runs a doctor form handler; on a validation problem, keeps what was typed and shows the form again. */
+  function keepDoctorForm(handler, formUrl) {
+    return async (req, res, next) => {
+      try {
+        await handler(req, res);
+      } catch (err) {
+        if (!(err instanceof ValidationError)) return next(err);
+        const { _csrf, password, ...values } = req.body;
+        req.session.doctorDraft = { key: formUrl(req), values };
+        req.flash('error', err.message);
+        res.redirect(formUrl(req));
+      }
+    };
+  }
+
+  function takeDoctorDraft(req, key) {
+    const draft = req.session.doctorDraft;
+    if (!draft || draft.key !== key) return null;
+    delete req.session.doctorDraft;
+    const v = draft.values;
+    return {
+      ...v,
+      clinic_ids: [].concat(v.clinic_ids || []).map(id),
+      ...Object.fromEntries(Object.keys(DOCTOR_PERMISSIONS).map((p) => [p, bool(v[p])])),
+    };
+  }
 
   async function saveDoctorSettings(c, doctorId, body) {
     const perms = Object.keys(DOCTOR_PERMISSIONS);
@@ -243,7 +286,7 @@ module.exports = (db) => {
       `UPDATE doctor_profiles SET specialty = $2, bio = $3, registration_number = $4,
               ${perms.map((p, i) => `${p} = $${i + 5}`).join(', ')}
         WHERE user_id = $1`,
-      [doctorId, text(body.specialty, 200) || null, text(body.bio) || null, text(body.registration_number, 50) || null,
+      [doctorId, text(body.specialty, 200) || null, text(body.bio) || null, body.gmc,
         ...perms.map((p) => bool(body[p]))]);
     const clinicIds = [].concat(body.clinic_ids || []).map(id).filter(Boolean);
     await c.query('DELETE FROM doctor_clinics WHERE doctor_id = $1', [doctorId]);
@@ -252,11 +295,12 @@ module.exports = (db) => {
     }
   }
 
-  router.post('/doctors', async (req, res) => {
+  router.post('/doctors', keepDoctorForm(async (req, res) => {
     const name = text(req.body.name, 200);
     const email = text(req.body.email, 200).toLowerCase();
     if (name.length < 2 || !EMAIL.test(email)) throw new ValidationError('Enter the doctor\'s name and a valid email.');
     if (await db.one('SELECT 1 FROM users WHERE lower(email) = $1', [email])) throw new ValidationError('That email is already in use.');
+    const gmc = await checkGmc(req.body);
     const password = text(req.body.password, 200) || temporaryPassword();
     if (password.length < 8) throw new ValidationError('Password must be at least 8 characters.');
     const doctor = await db.tx(async (c) => {
@@ -265,13 +309,13 @@ module.exports = (db) => {
          VALUES ('doctor', $1, $2, $3, $4, TRUE) RETURNING id`,
         [name, email, await bcrypt.hash(password, 12), text(req.body.phone, 50) || null]);
       await c.query('INSERT INTO doctor_profiles (user_id) VALUES ($1)', [u.id]);
-      await saveDoctorSettings(c, u.id, req.body);
-      await audit(c, req.user.id, 'doctor.create', 'user', u.id, { email });
+      await saveDoctorSettings(c, u.id, { ...req.body, gmc });
+      await audit(c, req.user.id, 'doctor.create', 'user', u.id, { email, gmc });
       return u;
     });
     req.flash('success', `Doctor account created. They sign in at ${req.app.locals.staffLoginUrl} with ${email} and the temporary password ${password}. Share it privately – they'll be asked to choose their own password.`);
     res.redirect(`/admin/doctors/${doctor.id}`);
-  });
+  }, () => '/admin/doctors/new'));
 
   router.get('/doctors/:id', async (req, res) => {
     const doctor = await db.one(
@@ -284,10 +328,14 @@ module.exports = (db) => {
               COUNT(*) FILTER (WHERE a.status IN ('confirmed', 'checked_in') AND s.starts_at >= $2) AS upcoming,
               COUNT(*) FILTER (WHERE a.status = 'no_show') AS no_shows
          FROM appointments a JOIN slots s ON s.id = a.slot_id WHERE s.doctor_id = $1`, [doctor.id, time.nowLocal()]);
-    res.render('admin/doctor-form', { title: doctor.name, doctor, clinics, assigned, permissions: DOCTOR_PERMISSIONS, stats });
+    const draft = takeDoctorDraft(req, `/admin/doctors/${doctor.id}`);
+    res.render('admin/doctor-form', {
+      title: doctor.name, doctor: draft ? { ...doctor, ...draft, id: doctor.id } : doctor, clinics,
+      assigned: draft ? draft.clinic_ids : assigned, permissions: DOCTOR_PERMISSIONS, stats,
+    });
   });
 
-  router.post('/doctors/:id', async (req, res) => {
+  router.post('/doctors/:id', keepDoctorForm(async (req, res) => {
     const doctorId = id(req.params.id);
     const name = text(req.body.name, 200);
     const email = text(req.body.email, 200).toLowerCase();
@@ -295,19 +343,20 @@ module.exports = (db) => {
     if (await db.one('SELECT 1 FROM users WHERE lower(email) = $1 AND id <> $2', [email, doctorId])) {
       throw new ValidationError('That email is already in use.');
     }
+    const gmc = await checkGmc(req.body, doctorId);
     await db.tx(async (c) => {
       const { rowCount } = await c.query(
         `UPDATE users SET name = $2, email = $3, phone = $4 WHERE id = $1 AND role = 'doctor'`,
         [doctorId, name, email, text(req.body.phone, 50) || null]);
       if (!rowCount) throw new ValidationError('Doctor not found.');
-      await saveDoctorSettings(c, doctorId, req.body);
-      await audit(c, req.user.id, 'doctor.update', 'user', doctorId, {
+      await saveDoctorSettings(c, doctorId, { ...req.body, gmc });
+      await audit(c, req.user.id, 'doctor.update', 'user', doctorId, { gmc,
         permissions: Object.fromEntries(Object.keys(DOCTOR_PERMISSIONS).map((p) => [p, bool(req.body[p])])),
       });
     });
     req.flash('success', 'Doctor settings saved.');
     res.redirect(`/admin/doctors/${doctorId}`);
-  });
+  }, (req) => `/admin/doctors/${id(req.params.id)}`));
 
   // ---------- Any user: activate/deactivate, reset password ----------
   router.post('/users/:id/toggle', async (req, res) => {

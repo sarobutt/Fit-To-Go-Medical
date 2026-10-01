@@ -68,13 +68,14 @@ async function seedDemo(db) {
   const password = await bcrypt.hash('Doctor123!', 12);
   const clinics = await db.all('SELECT id FROM clinics ORDER BY id');
   const doctors = [
-    ['Dr Amina Hassan', 'amina@fittogo.test', 'General Practitioner', [0, 1]],
-    ['Dr James Walker', 'james@fittogo.test', 'Occupational Health', [0, 2]],
+    ['Dr Amina Hassan', 'amina@fittogo.test', 'General Practitioner', [0, 1], '7000001'],
+    ['Dr James Walker', 'james@fittogo.test', 'Occupational Health', [0, 2], '7000002'],
   ];
-  for (const [name, email, specialty, clinicIdx] of doctors) {
+  for (const [name, email, specialty, clinicIdx, gmc] of doctors) {
     const u = await db.one(`INSERT INTO users (role, name, email, password_hash) VALUES ('doctor', $1, $2, $3) RETURNING id`,
       [name, email, password]);
-    await db.query('INSERT INTO doctor_profiles (user_id, specialty) VALUES ($1, $2)', [u.id, specialty]);
+    await db.query('INSERT INTO doctor_profiles (user_id, specialty, registration_number) VALUES ($1, $2, $3)',
+      [u.id, specialty, gmc]);
     for (const i of clinicIdx) {
       if (clinics[i]) await db.query('INSERT INTO doctor_clinics VALUES ($1, $2)', [u.id, clinics[i].id]);
     }

@@ -9,6 +9,9 @@
     <% if (!isToday) { %><a class="btn small" href="/doctor">Today</a><% } %>
   </form>
 </div>
+<% if (!user.registration_number) { %>
+  <div class="flash error" role="alert">Your GMC number isn't on file yet, so you can't complete appointments or issue certificates. Please ask an administrator to add it.</div>
+<% } %>
 <div class="grid grid-4" style="margin-bottom:16px">
   <div class="card stat"><span class="label">Waiting to arrive</span><span class="value"><%= counts.waiting %></span></div>
   <div class="card stat"><span class="label">Checked in</span><span class="value"><%= counts.checked_in %></span></div>

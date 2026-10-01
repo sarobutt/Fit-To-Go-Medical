@@ -52,6 +52,16 @@ function consultationRoutes(router, db, { base, findAppointment, canEdit }) {
     if (!appt) return notFound(res);
     if (!canEdit(req)) throw new ValidationError('You don\'t have permission to record results.');
     const finishing = req.body.action === 'complete';
+    if (finishing) {
+      // Certificates must carry the examining doctor's GMC number.
+      const doctor = await db.one(
+        `SELECT u.name, dp.registration_number FROM appointments a JOIN slots s ON s.id = a.slot_id
+           JOIN users u ON u.id = s.doctor_id LEFT JOIN doctor_profiles dp ON dp.user_id = u.id WHERE a.id = $1`, [id]);
+      if (!doctor?.registration_number) {
+        throw new ValidationError(`${doctor ? doctor.name : 'The doctor'} has no GMC number on file, so the certificate can't be issued. `
+          + 'An admin can add it under Admin > Doctors. Your answers have been kept – use Save progress meanwhile.');
+      }
+    }
 
     if (appt.status === 'checked_in') {
       const data = consultation.parse(req.body, { final: finishing });

@@ -216,7 +216,7 @@ test('doctor publishes availability, checks a patient in and records results', a
 test('admin controls doctor permissions and clinic assignments', async () => {
   const admin = await login(ctx.app, 'admin@test.io');
   const res = await admin.post$(`/admin/doctors/${ctx.doctor.id}`, {
-    name: 'Dr Dee', email: 'doc@test.io', can_check_in: 'on', clinic_ids: String(ctx.clinic.id),
+    name: 'Dr Dee', email: 'doc@test.io', registration_number: '1234567', can_check_in: 'on', clinic_ids: String(ctx.clinic.id),
   });
   assert.equal(res.status, 302);
   const profile = await ctx.db.one('SELECT * FROM doctor_profiles WHERE user_id = $1', [ctx.doctor.id]);
@@ -304,7 +304,9 @@ test('staff sign in only at the staff page, with email and password', async () =
 
 test('new staff replace their temporary password at first sign-in', async () => {
   const admin = await login(ctx.app, 'admin@test.io');
-  const created = await admin.post$('/admin/doctors', { name: 'Dr New', email: 'new@test.io', password: 'Temporary-pass1' });
+  const created = await admin.post$('/admin/doctors', {
+    name: 'Dr New', email: 'new@test.io', password: 'Temporary-pass1', registration_number: 'GMC 7654321',
+  });
   assert.equal(created.status, 302);
 
   const agent = request.agent(ctx.app);
@@ -336,7 +338,6 @@ test('staff are signed out after 30 minutes of inactivity', async () => {
 
 test('doctor records the consultation and the patient gets a report and certificate', async () => {
   await ctx.db.query(`UPDATE users SET date_of_birth = '1990-04-12' WHERE id = $1`, [ctx.patient.id]);
-  await ctx.db.query(`UPDATE doctor_profiles SET registration_number = 'GMC 1234567' WHERE user_id = $1`, [ctx.doctor.id]);
   const slot = await addSlot(ctx.db, { ...ctx, startsAt: `${time.todayLocal()} 00:00`, endsAt: `${time.todayLocal()} 00:15` });
   const appt = await ctx.db.one(
     `INSERT INTO appointments (reference, patient_id, slot_id, test_id, status, price_pence)
@@ -472,4 +473,43 @@ test('health check and privacy page', async () => {
   const privacy = await request(ctx.app).get('/privacy');
   assert.equal(privacy.status, 200);
   assert.match(privacy.text, /Your rights/);
+});
+
+test('every doctor needs a unique GMC number, and it is printed on their documents', async () => {
+  const admin = await login(ctx.app, 'admin@test.io');
+  const base = { name: 'Dr Two', email: 'two@test.io', clinic_ids: String(ctx.clinic.id) };
+
+  // Missing or wrong format: not created, and what was typed is kept on the form.
+  const missing = await admin.post$('/admin/doctors', base);
+  assert.equal(missing.headers.location, '/admin/doctors/new');
+  const form = await admin.get('/admin/doctors/new');
+  assert.match(form.text, /Enter the doctor&#39;s GMC number/);
+  assert.match(form.text, /value="two@test.io"/);
+  await admin.post$('/admin/doctors', { ...base, registration_number: '12345' });
+  // Already used by Dr Dee.
+  await admin.post$('/admin/doctors', { ...base, registration_number: '1234567' });
+  assert.equal((await ctx.db.one(`SELECT COUNT(*) AS n FROM users WHERE email = 'two@test.io'`)).n, 0);
+
+  // "GMC 7 654 321" is accepted and stored as digits.
+  await admin.post$('/admin/doctors', { ...base, registration_number: 'GMC 7 654 321' });
+  const saved = await ctx.db.one(
+    `SELECT dp.registration_number FROM doctor_profiles dp JOIN users u ON u.id = dp.user_id WHERE u.email = 'two@test.io'`);
+  assert.equal(saved.registration_number, '7654321');
+  assert.match((await admin.get('/admin/doctors')).text, /7654321/);
+
+  // A doctor without a GMC number can't complete an appointment.
+  await ctx.db.query('UPDATE doctor_profiles SET registration_number = NULL WHERE user_id = $1', [ctx.doctor.id]);
+  const slot = await addSlot(ctx.db, { ...ctx, startsAt: `${time.todayLocal()} 00:00`, endsAt: `${time.todayLocal()} 00:15` });
+  const appt = await ctx.db.one(
+    `INSERT INTO appointments (reference, patient_id, slot_id, test_id, status, price_pence)
+     VALUES ('FTG-GMC001', $1, $2, $3, 'checked_in', 4900) RETURNING id`, [ctx.patient.id, slot.id, ctx.test.id]);
+  const doc = await login(ctx.app, 'doc@test.io');
+  assert.match((await doc.get('/doctor')).text, /Your GMC number isn.t on file yet/);
+  await doc.post$(`/doctor/appointments/${appt.id}/consultation`, { action: 'complete', outcome: 'fit' });
+  assert.equal((await ctx.db.one('SELECT status FROM appointments WHERE id = $1', [appt.id])).status, 'checked_in');
+  assert.match((await doc.get(`/doctor/appointments/${appt.id}`)).text, /has no GMC number on file/);
+
+  await ctx.db.query(`UPDATE doctor_profiles SET registration_number = '1234567' WHERE user_id = $1`, [ctx.doctor.id]);
+  await doc.post$(`/doctor/appointments/${appt.id}/consultation`, { action: 'complete', outcome: 'fit' });
+  assert.equal((await ctx.db.one('SELECT status FROM appointments WHERE id = $1', [appt.id])).status, 'completed');
 });
