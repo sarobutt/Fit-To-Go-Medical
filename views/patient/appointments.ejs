@@ -1,20 +1,20 @@
 <%- include('../partials/header') %>
-<div class="page-head"><h1>My appointments</h1><a class="btn" href="/patient/book">Book a test</a></div>
+<div class="page-head"><h1>My appointments</h1><a class="btn accent" href="/patient/book">Book a test</a></div>
 <div class="card flush">
   <% if (!appointments.length) { %>
     <div class="empty">You haven't booked any tests yet.</div>
   <% } else { %>
-  <div class="table-wrap"><table>
+  <div class="table-wrap"><table class="stack">
     <thead><tr><th>Reference</th><th>Test</th><th>Clinic</th><th>When</th><th>Status</th><th></th></tr></thead>
     <tbody>
       <% for (const a of appointments) { %>
         <tr>
-          <td class="nowrap"><%= a.reference %></td>
-          <td><%= a.test_name %></td>
-          <td><%= a.clinic_name %></td>
-          <td class="nowrap"><%= time.formatDateTime(a.starts_at) %></td>
+          <td class="nowrap" data-label="Reference"><%= a.reference %></td>
+          <td class="cell-main"><strong><%= a.test_name %></strong></td>
+          <td data-label="Clinic"><%= a.clinic_name %></td>
+          <td class="nowrap" data-label="When"><%= time.formatDateTime(a.starts_at) %></td>
           <td><%- include('../partials/status', { status: a.status }) %></td>
-          <td class="right"><a href="/patient/appointments/<%= a.id %>">View</a></td>
+          <td class="right cell-actions"><a class="btn small secondary" href="/patient/appointments/<%= a.id %>">View</a></td>
         </tr>
       <% } %>
     </tbody>

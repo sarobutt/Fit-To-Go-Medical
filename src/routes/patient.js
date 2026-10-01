@@ -26,7 +26,8 @@ module.exports = (db) => {
     await bookings.sweepExpiredHolds(db);
     const upcoming = await db.all(
       `${APPOINTMENT_SELECT} WHERE a.patient_id = $1 AND a.status IN ('pending_payment', 'confirmed', 'checked_in')
-        ORDER BY s.starts_at`, [req.user.id]);
+          AND s.starts_at::date >= $2::date
+        ORDER BY s.starts_at`, [req.user.id, time.todayLocal()]);
     const recent = await db.all(
       `${APPOINTMENT_SELECT} WHERE a.patient_id = $1 AND a.status = 'completed' ORDER BY s.starts_at DESC LIMIT 3`,
       [req.user.id]);
@@ -46,6 +47,7 @@ module.exports = (db) => {
     res.render('patient/book', {
       title: 'Book a test', tests, clinics, testId, clinic, dates, date, slots,
       test: tests.find((t) => t.id === testId) || null,
+      change: ['test', 'clinic'].includes(req.query.change) ? req.query.change : null,
     });
   });
 
@@ -85,6 +87,32 @@ module.exports = (db) => {
       sendPdf(res, doc);
     });
   }
+
+  // "Add to calendar": a standard .ics file that phones and Outlook/Google Calendar open directly.
+  router.get('/appointments/:id/calendar.ics', async (req, res) => {
+    const appt = await db.one(`${APPOINTMENT_SELECT} WHERE a.id = $1 AND a.patient_id = $2`,
+      [parseInt(req.params.id, 10) || 0, req.user.id]);
+    if (!appt) return res.status(404).render('error', { title: 'Not found', message: 'Appointment not found.' });
+    const esc = (v) => String(v || '').replace(/[\\;,]/g, (c) => `\\${c}`).replace(/\n/g, '\\n');
+    const stamp = (v) => v.slice(0, 16).replace(/[-:]/g, '').replace(' ', 'T') + '00';
+    const now = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+    const tz = req.app.locals.timeZone;
+    const ics = [
+      'BEGIN:VCALENDAR', 'VERSION:2.0', `PRODID:-//${esc(req.app.locals.siteName)}//Booking//EN`, 'METHOD:PUBLISH',
+      'BEGIN:VEVENT',
+      `UID:${appt.reference}@fit-to-go-medical`,
+      `DTSTAMP:${now}`,
+      `DTSTART;TZID=${tz}:${stamp(appt.starts_at)}`,
+      `DTEND;TZID=${tz}:${stamp(appt.ends_at)}`,
+      `SUMMARY:${esc(`${appt.test_name} – ${req.app.locals.siteName}`)}`,
+      `LOCATION:${esc(`${appt.clinic_name}, ${appt.clinic_address}, ${appt.clinic_city}`)}`,
+      `DESCRIPTION:${esc(`Reference ${appt.reference}. Bring photo ID and arrive 10 minutes early.${appt.preparation ? ` Before you come: ${appt.preparation}` : ''}`)}`,
+      'BEGIN:VALARM', 'TRIGGER:-PT2H', 'ACTION:DISPLAY', 'DESCRIPTION:Appointment in 2 hours', 'END:VALARM',
+      'END:VEVENT', 'END:VCALENDAR', '',
+    ].join('\r\n');
+    res.set({ 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': `attachment; filename="${appt.reference}.ics"` });
+    res.send(ics);
+  });
 
   router.post('/appointments/:id/pay', async (req, res) => {
     const url = await bookings.resumeCheckout(db, { appointmentId: parseInt(req.params.id, 10) || 0, patientId: req.user.id });

@@ -1,13 +1,16 @@
 <%- include('../partials/header') %>
+<% const today = time.todayLocal(); const rel = date === today ? 'Today' : (date === time.addDays(today, 1) ? 'Tomorrow' : (date === time.addDays(today, -1) ? 'Yesterday' : null)); %>
 <div class="page-head">
-  <div><h1><%= isToday ? "Today's patients" : time.formatDate(date) %></h1><p class="muted"><%= time.formatDate(date) %> · check patients in as they arrive</p></div>
-  <form method="get" class="row">
-    <a class="btn small secondary" href="/doctor?date=<%= time.addDays(date, -1) %>" aria-label="Previous day">←</a>
-    <input type="date" name="date" value="<%= date %>" aria-label="Date" style="width:auto">
-    <button class="btn small secondary">Go</button>
-    <a class="btn small secondary" href="/doctor?date=<%= time.addDays(date, 1) %>" aria-label="Next day">→</a>
+  <div>
+    <h1><%= rel ? rel + "'s patients" : 'Patients on ' + time.formatDate(date) %></h1>
+    <p class="muted"><%= rel ? time.formatDate(date) : '' %><%= isToday ? ' · check patients in as they arrive' : '' %></p>
+  </div>
+  <div class="day-nav">
+    <a class="btn small secondary" href="/doctor?date=<%= time.addDays(date, -1) %>">‹ Previous day</a>
     <% if (!isToday) { %><a class="btn small" href="/doctor">Today</a><% } %>
-  </form>
+    <a class="btn small secondary" href="/doctor?date=<%= time.addDays(date, 1) %>">Next day ›</a>
+    <form method="get" class="date-jump"><label class="sr-only" for="date">Go to date</label><input id="date" type="date" name="date" value="<%= date %>" data-autosubmit-date></form>
+  </div>
 </div>
 <% if (!user.registration_number) { %>
   <div class="flash error" role="alert">Your GMC number isn't on file yet, so you can't complete appointments or issue certificates. Please ask an administrator to add it.</div>
@@ -22,17 +25,17 @@
   <% if (!appointments.length) { %>
     <div class="empty">No patients booked for this day. <a href="/doctor/availability">Manage availability</a></div>
   <% } else { %>
-  <div class="table-wrap"><table>
+  <div class="table-wrap"><table class="stack">
     <thead><tr><th>Time</th><th>Patient</th><th>Test</th><th>Clinic</th><th>Status</th><th class="right">Actions</th></tr></thead>
     <tbody>
     <% for (const a of appointments) { %>
       <tr>
-        <td class="nowrap"><strong><%= a.starts_at.slice(11, 16) %></strong></td>
-        <td><a href="/doctor/appointments/<%= a.id %>"><%= a.patient_name %></a><div class="small muted"><%= a.reference %></div></td>
-        <td><%= a.test_name %></td>
-        <td><%= a.clinic_name %></td>
+        <td class="nowrap cell-main"><strong><%= a.starts_at.slice(11, 16) %></strong> <span class="patient-inline"><a href="/doctor/appointments/<%= a.id %>"><%= a.patient_name %></a></span></td>
+        <td class="hide-phone"><a href="/doctor/appointments/<%= a.id %>"><%= a.patient_name %></a><div class="small muted"><%= a.reference %></div></td>
+        <td data-label="Test"><%= a.test_name %></td>
+        <td data-label="Clinic"><%= a.clinic_name %></td>
         <td><%- include('../partials/status', { status: a.status }) %></td>
-        <td class="right"><div class="row" style="justify-content:flex-end">
+        <td class="right cell-actions"><div class="row" style="justify-content:flex-end">
           <% if (a.status === 'confirmed' && isToday && user.can_check_in) { %>
             <form method="post" action="/doctor/appointments/<%= a.id %>/check-in" class="inline-form"><%- include('../partials/csrf') %><button class="btn small">Check in</button></form>
             <form method="post" action="/doctor/appointments/<%= a.id %>/no-show" class="inline-form" data-confirm="Mark <%= a.patient_name %> as a no-show?"><%- include('../partials/csrf') %><button class="btn small secondary">No-show</button></form>

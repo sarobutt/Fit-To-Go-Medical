@@ -1,5 +1,11 @@
 <%- include('../partials/header') %>
 <div class="page-head"><h1>Tests & pricing</h1><a class="btn" href="/admin/tests/new">Add test</a></div>
+<form method="post" action="/admin/tests/set-all-prices" class="card row" style="margin-bottom:16px" data-confirm="Change the price of every test? Existing bookings keep the price they paid.">
+  <%- include('../partials/csrf') %>
+  <label for="allprice" style="margin:0">Set every test to one price</label>
+  <span>£</span><input id="allprice" name="price" type="number" step="0.01" min="0.01" value="39.99" required style="max-width:120px">
+  <button class="btn secondary">Apply to all tests</button>
+</form>
 <div class="card flush"><div class="table-wrap"><table>
   <thead><tr><th>Test</th><th class="num">Price</th><th class="num">Duration</th><th class="num">Bookings</th><th>Status</th><th></th></tr></thead>
   <tbody>

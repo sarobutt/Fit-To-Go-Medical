@@ -513,3 +513,26 @@ test('every doctor needs a unique GMC number, and it is printed on their documen
   await doc.post$(`/doctor/appointments/${appt.id}/consultation`, { action: 'complete', outcome: 'fit' });
   assert.equal((await ctx.db.one('SELECT status FROM appointments WHERE id = $1', [appt.id])).status, 'completed');
 });
+
+test('admin sets every test to one price; patients can add a booking to their calendar', async () => {
+  await ctx.db.query(`INSERT INTO tests (name, price_pence) VALUES ('ECG', 7500)`);
+  const admin = await login(ctx.app, 'admin@test.io');
+  await admin.post$('/admin/tests/set-all-prices', { price: '39.99' });
+  const prices = await ctx.db.all('SELECT DISTINCT price_pence FROM tests');
+  assert.deepEqual(prices.map((r) => r.price_pence), [3999]);
+  assert.match((await admin.get('/admin/tests')).text, /£39\.99/);
+
+  const slot = await addSlot(ctx.db, { ...ctx, startsAt: inDays(4, '09:30'), endsAt: inDays(4, '09:45') });
+  const appt = await ctx.db.one(
+    `INSERT INTO appointments (reference, patient_id, slot_id, test_id, status, price_pence)
+     VALUES ('FTG-CAL001', $1, $2, $3, 'confirmed', 3999) RETURNING id`, [ctx.patient.id, slot.id, ctx.test.id]);
+  const pat = await login(ctx.app, 'pat@test.io');
+  const dash = await pat.get('/patient');
+  assert.match(dash.text, /Your next appointment/);
+  const ics = await pat.get(`/patient/appointments/${appt.id}/calendar.ics`);
+  assert.equal(ics.headers['content-type'], 'text/calendar; charset=utf-8');
+  assert.match(ics.text, /DTSTART;TZID=Europe\/London:\d{8}T093000/);
+  assert.match(ics.text, /LOCATION:Central\\, 1 High St\\, Leeds/);
+  const other = await login(ctx.app, 'pat2@test.io');
+  assert.equal((await other.get(`/patient/appointments/${appt.id}/calendar.ics`)).status, 404);
+});

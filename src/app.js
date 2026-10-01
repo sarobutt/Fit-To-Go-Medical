@@ -32,6 +32,7 @@ function createApp(pool) {
     time,
     STATUS_LABELS,
     cancellationHours: config.cancellationHours,
+    timeZone: config.timeZone,
     staffLoginUrl: `${config.appUrl}/staff/login`,
     consultationSummary: consultation.summary,
     OUTCOMES: consultation.OUTCOMES,
@@ -57,6 +58,9 @@ function createApp(pool) {
     app.use((req, res, next) => (req.secure ? next() : res.redirect(301, `https://${req.get('host')}${req.originalUrl}`)));
   }
   app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: config.isProduction ? '1d' : 0 }));
+  // The Inter font, served from this site (not Google) so visitors' details aren't shared with a third party.
+  app.use('/fonts', express.static(path.join(__dirname, '..', 'node_modules', '@fontsource-variable', 'inter', 'files'),
+    { maxAge: '365d', immutable: true }));
   // Pages with personal or medical details must not be kept in the browser's cache
   // (e.g. the back button on a shared computer after signing out).
   app.use(['/patient', '/payments', '/login', '/register', '/account', '/forgot-password', '/reset-password'], (req, res, next) => {

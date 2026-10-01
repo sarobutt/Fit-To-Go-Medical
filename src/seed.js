@@ -15,12 +15,12 @@ const CLINICS = [
 ];
 
 const TESTS = [
-  ['Fit-to-Fly PCR Test', 'Certified PCR swab with a signed fit-to-fly certificate accepted by airlines.', 'Avoid eating, drinking or brushing teeth 30 minutes before your swab.', 8900, 15, '24 hours'],
-  ['Pre-Employment Medical', 'Full occupational health medical with vision, hearing, BP and urinalysis.', 'Bring photo ID, glasses/contact lenses and any employer forms.', 12000, 30, 'Same day'],
-  ['Full Blood Count', 'Checks red cells, white cells and platelets to screen for a wide range of conditions.', 'No fasting needed. Drink plenty of water beforehand.', 4900, 15, '48 hours'],
-  ['Sports & Fitness Medical', 'Cardiovascular screening, ECG and musculoskeletal check before competitive sport.', 'Wear comfortable clothing.', 14900, 30, 'Same day'],
-  ['HGV / D4 Driver Medical', 'DVLA D4 medical for lorry, bus and coach licences.', 'Bring your D4 form, photo ID and glasses if you wear them.', 6500, 20, 'Same day'],
-  ['Travel Vaccination Consultation', 'Personalised travel health advice and vaccination plan.', 'Bring your travel itinerary and vaccination records.', 3500, 15, 'Immediate'],
+  ['Fit-to-Fly PCR Test', 'Certified PCR swab with a signed fit-to-fly certificate accepted by airlines.', 'Avoid eating, drinking or brushing teeth 30 minutes before your swab.', 3999, 15, '24 hours'],
+  ['Pre-Employment Medical', 'Full occupational health medical with vision, hearing, BP and urinalysis.', 'Bring photo ID, glasses/contact lenses and any employer forms.', 3999, 30, 'Same day'],
+  ['Full Blood Count', 'Checks red cells, white cells and platelets to screen for a wide range of conditions.', 'No fasting needed. Drink plenty of water beforehand.', 3999, 15, '48 hours'],
+  ['Sports & Fitness Medical', 'Cardiovascular screening, ECG and musculoskeletal check before competitive sport.', 'Wear comfortable clothing.', 3999, 30, 'Same day'],
+  ['HGV / D4 Driver Medical', 'DVLA D4 medical for lorry, bus and coach licences.', 'Bring your D4 form, photo ID and glasses if you wear them.', 3999, 20, 'Same day'],
+  ['Travel Vaccination Consultation', 'Personalised travel health advice and vaccination plan.', 'Bring your travel itinerary and vaccination records.', 3999, 15, 'Immediate'],
 ];
 
 async function seed({ demo = false } = {}) {

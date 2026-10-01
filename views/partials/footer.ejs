@@ -1,4 +1,5 @@
 </main>
+<% if (user && user.role === 'admin') { %></div><% } %>
 <footer class="site-footer">
   <div class="container row">
     <span>© <%= new Date().getFullYear() %> <%= siteName %></span>

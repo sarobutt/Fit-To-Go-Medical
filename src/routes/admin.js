@@ -45,6 +45,11 @@ const APPOINTMENT_SELECT = `
 module.exports = (db) => {
   const router = express.Router();
   router.use(requireStaff('admin'));
+  // Shown as a number next to "Data requests" in the admin menu.
+  router.use(async (req, res, next) => {
+    res.locals.openRequests = (await db.one(`SELECT COUNT(*) AS n FROM data_requests WHERE status = 'open'`)).n;
+    next();
+  });
 
   // ---------- Dashboard ----------
   router.get('/', async (req, res) => {
@@ -190,6 +195,15 @@ module.exports = (db) => {
       [f.name, f.description, f.preparation, f.price_pence, f.duration_minutes, f.turnaround]);
     await audit(db, req.user.id, 'test.create', 'test', t.id, f);
     req.flash('success', 'Test created.');
+    res.redirect('/admin/tests');
+  });
+
+  router.post('/tests/set-all-prices', async (req, res) => {
+    const pence = toPence(req.body.price);
+    if (pence <= 0) throw new ValidationError('Enter a price above £0.');
+    const { rowCount } = await db.query('UPDATE tests SET price_pence = $1', [pence]);
+    await audit(db, req.user.id, 'test.set_all_prices', 'test', null, { price_pence: pence, tests: rowCount });
+    req.flash('success', `All ${rowCount} tests now cost ${req.app.locals.money(pence)}. Existing bookings keep the price they paid.`);
     res.redirect('/admin/tests');
   });
 

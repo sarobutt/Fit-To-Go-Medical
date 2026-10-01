@@ -21,3 +21,17 @@ document.addEventListener('input', (event) => {
   const out = form.querySelector('[data-bmi-output]');
   if (out) out.textContent = h && w ? (Math.round((w / (h * h)) * 10) / 10).toString() : '–';
 });
+// Phone menu: the ☰ button opens and closes the main menu (and the admin menu).
+document.addEventListener('click', (event) => {
+  const toggle = event.target.closest('.menu-toggle');
+  if (!toggle) return;
+  const header = toggle.closest('.site-header');
+  const open = !header.classList.contains('open');
+  header.classList.toggle('open', open);
+  document.body.classList.toggle('menu-open', open);
+  toggle.setAttribute('aria-expanded', String(open));
+});
+// Doctor's day: picking a date goes straight there.
+document.addEventListener('change', (event) => {
+  if (event.target.matches('[data-autosubmit-date]') && event.target.value) event.target.form.submit();
+});

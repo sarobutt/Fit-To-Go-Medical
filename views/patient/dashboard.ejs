@@ -1,22 +1,51 @@
 <%- include('../partials/header') %>
 <div class="page-head">
   <div><h1>Hello, <%= user.name.split(' ')[0] %></h1><p class="muted">Manage your bookings and see your results.</p></div>
-  <a class="btn" href="/patient/book">Book a test</a>
+  <a class="btn accent" href="/patient/book">Book a test</a>
 </div>
+<% const next = upcoming[0]; %>
+<% if (next) { const d = new Date(next.starts_at.slice(0, 10) + 'T12:00:00Z');
+     const where = next.clinic_address + ', ' + next.clinic_city;
+     const daysAway = Math.round((Date.parse(next.starts_at.slice(0, 10)) - Date.parse(time.todayLocal())) / 86400000); %>
+  <section class="card next-appt" style="margin-bottom:16px" aria-label="Your next appointment">
+    <div class="date-tile" aria-hidden="true">
+      <div class="m"><%= d.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' }) %></div>
+      <div class="d"><%= d.getUTCDate() %></div>
+      <div class="t"><%= next.starts_at.slice(11, 16) %></div>
+    </div>
+    <div>
+      <div class="eyebrow">Your next appointment<%= daysAway === 0 ? ' · today' : daysAway === 1 ? ' · tomorrow' : ` · in ${daysAway} days` %></div>
+      <h2 style="margin:0 0 4px"><%= next.test_name %></h2>
+      <p style="margin:0"><%= time.formatDateTime(next.starts_at) %> · <strong><%= next.clinic_name %></strong></p>
+      <p class="muted small" style="margin:0"><%= where %></p>
+      <div class="actions">
+        <% if (next.status === 'pending_payment') { %>
+          <form method="post" action="/patient/appointments/<%= next.id %>/pay" class="inline-form"><%- include('../partials/csrf') %><button class="btn accent">Complete payment</button></form>
+        <% } else { %>
+          <a class="btn secondary small" href="https://www.google.com/maps/search/?api=1&query=<%= encodeURIComponent(next.clinic_name + ', ' + where) %>" target="_blank" rel="noopener">Directions</a>
+          <a class="btn secondary small" href="/patient/appointments/<%= next.id %>/calendar.ics">Add to calendar</a>
+        <% } %>
+        <a class="btn secondary small" href="/patient/appointments/<%= next.id %>">View booking</a>
+      </div>
+      <% if (next.preparation) { %><div class="prep"><strong>Before you come:</strong> <%= next.preparation %></div><% } %>
+      <p class="small muted" style="margin:10px 0 0">Bring photo ID and arrive 10 minutes early. Your reference is <strong><%= next.reference %></strong>.</p>
+    </div>
+  </section>
+<% } %>
 <div class="grid grid-2">
   <div class="card flush">
-    <h2>Upcoming appointments</h2>
+    <h2>All upcoming appointments</h2>
     <% if (!upcoming.length) { %>
       <div class="empty">No upcoming appointments. <a href="/patient/book">Book a test</a></div>
     <% } else { %>
-      <div class="table-wrap"><table>
+      <div class="table-wrap"><table class="stack">
         <tbody>
         <% for (const a of upcoming) { %>
           <tr>
-            <td><strong><%= a.test_name %></strong><div class="small muted"><%= a.clinic_name %></div></td>
-            <td class="nowrap"><%= time.formatDateTime(a.starts_at) %></td>
+            <td class="cell-main"><strong><%= a.test_name %></strong><div class="small muted"><%= a.clinic_name %></div></td>
+            <td class="nowrap" data-label="When"><%= time.formatDateTime(a.starts_at) %></td>
             <td><%- include('../partials/status', { status: a.status }) %></td>
-            <td class="right"><a href="/patient/appointments/<%= a.id %>">View</a></td>
+            <td class="right cell-actions"><a class="btn small secondary" href="/patient/appointments/<%= a.id %>">View</a></td>
           </tr>
         <% } %>
         </tbody>
@@ -28,12 +57,12 @@
     <% if (!recent.length) { %>
       <div class="empty">Results from completed appointments will appear here.</div>
     <% } else { %>
-      <div class="table-wrap"><table><tbody>
+      <div class="table-wrap"><table class="stack"><tbody>
         <% for (const a of recent) { %>
           <tr>
-            <td><strong><%= a.test_name %></strong><div class="small muted"><%= time.formatDate(a.starts_at) %></div></td>
-            <td class="small"><%= a.result_summary ? a.result_summary.slice(0, 80) : 'No summary recorded' %></td>
-            <td class="right"><a href="/patient/appointments/<%= a.id %>">Open</a></td>
+            <td class="cell-main"><strong><%= a.test_name %></strong><div class="small muted"><%= time.formatDate(a.starts_at) %></div></td>
+            <td class="small" data-label="Result"><%= a.result_summary ? a.result_summary.slice(0, 80) : 'No summary recorded' %></td>
+            <td class="right cell-actions"><a class="btn small secondary" href="/patient/appointments/<%= a.id %>">Open</a></td>
           </tr>
         <% } %>
       </tbody></table></div>

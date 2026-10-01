@@ -3,7 +3,7 @@
   <h1>Medical tests, booked in minutes.</h1>
   <p>Choose your test, pick a clinic and a time that suits you, and pay securely online. Our doctors will take it from there.</p>
   <div class="row">
-    <a class="btn" href="<%= user && user.role === 'patient' ? '/patient/book' : '/register' %>">Book a test</a>
+    <a class="btn accent" href="<%= user && user.role === 'patient' ? '/patient/book' : '/register' %>">Book a test</a>
     <a class="btn ghost" href="/tests">See tests & prices</a>
   </div>
 </section>

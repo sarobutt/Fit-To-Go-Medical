@@ -7,18 +7,23 @@
   <meta name="description" content="<%= siteName %> – book medical tests online at a clinic near you.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/css/styles.css">
+  <script src="/js/early.js"></script>
 </head>
 <body>
+<% const isAdmin = user && user.role === 'admin';
+   const isActive = (href) => (href === '/' + (user ? user.role : '') ? path === href : path.startsWith(href));
+   const nav = (href, label) => `<a href="${href}" class="${isActive(href) ? 'active' : ''}"${isActive(href) ? ' aria-current="page"' : ''}>${label}</a>`;
+   const requestsCount = typeof openRequests !== 'undefined' ? openRequests : 0; %>
 <header class="site-header">
   <div class="container">
     <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">✚</span><%= siteName %></a>
-    <nav class="nav" aria-label="Main">
-      <% const nav = (href, label) => `<a href="${href}" class="${(href === '/' + (user ? user.role : '') ? path === href : path.startsWith(href)) ? 'active' : ''}">${label}</a>`; %>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-menu"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg> Menu</button>
+    <nav class="nav" id="site-menu" aria-label="Main">
       <% if (!user) { %>
         <%- nav('/tests', 'Tests & prices') %>
         <%- nav('/clinics', 'Clinics') %>
         <%- nav('/login', 'Sign in') %>
-        <a class="btn small" href="/register">Book a test</a>
+        <a class="btn small accent" href="/register">Book a test</a>
       <% } else if (user.role === 'patient') { %>
         <%- nav('/patient', 'Dashboard') %>
         <%- nav('/patient/book', 'Book a test') %>
@@ -28,18 +33,6 @@
         <%- nav('/doctor', 'Clinic day') %>
         <%- nav('/doctor/availability', 'Availability') %>
         <%- nav('/doctor/account', 'Account') %>
-      <% } else if (user.role === 'admin') { %>
-        <%- nav('/admin', 'Overview') %>
-        <%- nav('/admin/appointments', 'Appointments') %>
-        <%- nav('/admin/patients', 'Patients') %>
-        <%- nav('/admin/doctors', 'Doctors') %>
-        <%- nav('/admin/availability', 'Availability') %>
-        <%- nav('/admin/clinics', 'Clinics') %>
-        <%- nav('/admin/tests', 'Tests') %>
-        <%- nav('/admin/payments', 'Payments') %>
-        <%- nav('/admin/requests', 'Requests') %>
-        <%- nav('/admin/admins', 'Admins') %>
-        <%- nav('/admin/audit', 'Audit') %>
       <% } %>
       <% if (user) { %>
         <span class="role-pill" title="Signed in as <%= user.email %>"><%= user.role %></span>
@@ -48,5 +41,26 @@
     </nav>
   </div>
 </header>
+<% if (isAdmin) { %>
+<div class="container admin-layout">
+  <aside class="sidebar" id="admin-menu" aria-label="Admin">
+    <% const groups = [
+      ['Day to day', [['/admin', 'Overview'], ['/admin/appointments', 'Appointments'], ['/admin/availability', 'Availability']]],
+      ['People', [['/admin/patients', 'Patients'], ['/admin/doctors', 'Doctors'], ['/admin/admins', 'Admins']]],
+      ['Setup', [['/admin/clinics', 'Clinics'], ['/admin/tests', 'Tests & prices']]],
+      ['Records', [['/admin/payments', 'Payments'], ['/admin/requests', 'Data requests'], ['/admin/audit', 'Audit log']]],
+    ]; %>
+    <% for (const [title, links] of groups) { %>
+      <div class="group">
+        <div class="group-title"><%= title %></div>
+        <% for (const [href, label] of links) { %>
+          <a href="<%= href %>" class="<%= isActive(href) ? 'active' : '' %>"<%- isActive(href) ? ' aria-current="page"' : '' %>><span><%= label %></span><% if (href === '/admin/requests' && requestsCount) { %><span class="badge-count" title="<%= requestsCount %> open"><%= requestsCount %></span><% } %></a>
+        <% } %>
+      </div>
+    <% } %>
+  </aside>
+  <main id="main">
+<% } else { %>
 <main class="container" id="main">
+<% } %>
   <% for (const f of flash) { %><div class="flash <%= f.type %>" role="<%= f.type === 'error' ? 'alert' : 'status' %>"><%= f.message %></div><% } %>
