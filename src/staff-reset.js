@@ -25,7 +25,7 @@ async function main(email) {
       [user.id, JSON.stringify({ via: 'command line' })]);
     console.log(`Reset ${user.name} (${user.role}).`);
     console.log(`Temporary password: ${password}`);
-    console.log('They sign in at /staff/login and choose a new password.');
+    console.log(`They sign in at ${require('./config').staffBaseUrl}/staff/login and choose a new password.`);
   } finally {
     await pool.end();
   }

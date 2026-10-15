@@ -20,6 +20,13 @@ module.exports = {
   siteName: env.SITE_NAME || 'Fit to go medical',
   port: parseInt(env.PORT || '3000', 10),
   appUrl: (env.APP_URL || `http://localhost:${env.PORT || 3000}`).replace(/\/$/, ''),
+  // The staff portal's own address (e.g. https://staff-domain.co.uk). When set, staff pages only exist
+  // there and the patient site has none. Left empty (e.g. on your own computer), everything runs on one address.
+  staffUrl: (env.STAFF_URL || '').replace(/\/$/, ''),
+  get staffHost() {
+    try { return this.staffUrl ? new URL(this.staffUrl).hostname.toLowerCase() : null; } catch { return null; }
+  },
+  get staffBaseUrl() { return this.staffUrl || this.appUrl; },
   isProduction: env.NODE_ENV === 'production',
   sessionSecret: env.SESSION_SECRET || 'dev-only-secret-change-me',
 

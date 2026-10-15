@@ -11,6 +11,10 @@ function checkProductionSettings() {
     problems.push('SESSION_SECRET must be set to a random string of at least 32 characters.');
   }
   if (!config.appUrl.startsWith('https://')) problems.push('APP_URL must start with https://');
+  if (config.staffUrl && !config.staffUrl.startsWith('https://')) problems.push('STAFF_URL must start with https://');
+  if (config.staffUrl && config.staffHost === new URL(config.appUrl).hostname) {
+    problems.push('STAFF_URL must be a different address from APP_URL.');
+  }
   if (!config.stripeSecretKey || !config.stripeWebhookSecret) {
     problems.push('STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET must be set.');
   }
@@ -34,7 +38,7 @@ async function ensureFirstAdmin(pool) {
   await pool.query(
     `INSERT INTO users (role, name, email, password_hash, must_change_password)
      VALUES ('admin', 'Clinic Administrator', $1, $2, TRUE)`, [email, await bcrypt.hash(password, 12)]);
-  console.log(`Created the first administrator (${email}). Sign in at ${config.appUrl}/staff/login.`);
+  console.log(`Created the first administrator (${email}). Sign in at ${config.staffBaseUrl}/staff/login.`);
 }
 
 async function main() {
@@ -45,6 +49,7 @@ async function main() {
   const app = createApp(pool);
   app.listen(config.port, () => {
     console.log(`${config.siteName} running at ${config.appUrl}`);
+    if (config.staffUrl) console.log(`Staff portal at ${config.staffUrl}`);
   });
 }
 

@@ -22,6 +22,8 @@ services:
         sync: false
       - key: APP_URL
         sync: false
+      - key: STAFF_URL        # the staff portal's own domain, e.g. https://your-staff-domain.co.uk
+        sync: false
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET

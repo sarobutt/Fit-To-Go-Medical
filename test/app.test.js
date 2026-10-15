@@ -536,3 +536,50 @@ test('admin sets every test to one price; patients can add a booking to their ca
   const other = await login(ctx.app, 'pat2@test.io');
   assert.equal((await other.get(`/patient/appointments/${appt.id}/calendar.ics`)).status, 404);
 });
+
+test('with a staff address set, staff pages exist only on the staff portal', async () => {
+  const config = require('../src/config');
+  config.staffUrl = 'https://staff.example.test';
+  try {
+    const PATIENT = 'fittogomedical.co.uk';
+    const STAFF = 'staff.example.test';
+    const on = (host) => ({ get: (path) => request(ctx.app).get(path).set('Host', host) });
+
+    // Patient site: no trace of the staff area.
+    for (const path of ['/staff/login', '/doctor', '/admin', '/admin/patients']) {
+      assert.equal((await on(PATIENT).get(path)).status, 404, `patient site ${path}`);
+    }
+    assert.equal((await on(PATIENT).get('/')).status, 200);
+    assert.match((await on(PATIENT).get('/robots.txt')).text, /Allow: \//);
+
+    // Staff portal: only staff pages; the home address goes to the staff sign-in.
+    const home = await on(STAFF).get('/');
+    assert.equal(home.headers.location, '/staff/login');
+    const login = await on(STAFF).get('/staff/login');
+    assert.equal(login.status, 200);
+    assert.match(login.text, /Staff portal/);
+    assert.doesNotMatch(login.text, /Book a test|Tests &amp; prices|sign in here/);
+    assert.match(login.headers['x-robots-tag'], /noindex/);
+    for (const path of ['/login', '/register', '/patient', '/tests', '/privacy', '/patient/book']) {
+      assert.equal((await on(STAFF).get(path)).status, 404, `staff portal ${path}`);
+    }
+    assert.match((await on(STAFF).get('/robots.txt')).text, /Disallow: \//);
+
+    // Signing in on the staff portal works; staff details on the patient site are just "incorrect".
+    const staff = request.agent(ctx.app);
+    const csrf = csrfFrom((await staff.get('/staff/login').set('Host', STAFF)).text);
+    const ok = await staff.post('/staff/login').set('Host', STAFF).type('form')
+      .send({ _csrf: csrf, email: 'admin@test.io', password: 'Password123!' });
+    assert.equal(ok.headers.location, '/admin');
+    assert.equal((await staff.get('/admin').set('Host', STAFF)).status, 200);
+
+    const patientSite = request.agent(ctx.app);
+    const c2 = csrfFrom((await patientSite.get('/login').set('Host', PATIENT)).text);
+    const refused = await patientSite.post('/login').set('Host', PATIENT).type('form')
+      .send({ _csrf: c2, email: 'admin@test.io', password: 'Password123!' });
+    assert.equal(refused.status, 401);
+    assert.doesNotMatch(refused.text, /staff/i);
+  } finally {
+    config.staffUrl = '';
+  }
+});

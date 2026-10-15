@@ -11,6 +11,7 @@ const { loadUser, csrf, flash, staffArea } = require('./auth');
 const { STATUS_LABELS } = require('./services/bookings');
 const { ValidationError } = require('./services/availability');
 const { backUrl } = require('./util');
+const { siteSplit, robots } = require('./sites');
 const consultation = require('./services/consultation');
 
 function money(pence) {
@@ -33,11 +34,13 @@ function createApp(pool) {
     STATUS_LABELS,
     cancellationHours: config.cancellationHours,
     timeZone: config.timeZone,
-    staffLoginUrl: `${config.appUrl}/staff/login`,
+    staffLoginUrl: `${config.staffBaseUrl}/staff/login`,
     consultationSummary: consultation.summary,
     OUTCOMES: consultation.OUTCOMES,
     // Defaults so the error page renders even if a request fails before these are set.
     user: null,
+    isStaffSite: false,
+    separateStaffSite: false,
     flash: [],
     csrfToken: '',
     path: '',
@@ -67,6 +70,10 @@ function createApp(pool) {
     res.set('Cache-Control', 'no-store');
     next();
   });
+
+  // Patient site and staff portal: decide which one this request is for (see src/sites.js).
+  app.use(siteSplit);
+  app.get('/robots.txt', robots);
 
   // Stripe webhooks need the raw body for signature checks, so mount before the form parser.
   app.use('/webhooks', require('./routes/webhooks')(db));

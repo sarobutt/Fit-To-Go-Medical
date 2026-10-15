@@ -53,10 +53,11 @@ module.exports = (db) => {
     const passwordOk = await checkPassword(user, password);
     // Staff sign in at /staff/login. Someone who got a staff password right is pointed there;
     // anyone else just sees the usual message, so the page doesn't reveal which emails are staff.
-    if (passwordOk && isStaff(user)) {
+    // With a separate staff portal the patient site gives no hint that staff accounts exist here.
+    if (passwordOk && isStaff(user) && !config.staffHost) {
       return res.redirect(303, '/staff/login?from=patient');
     }
-    if (!passwordOk) {
+    if (!passwordOk || isStaff(user)) {
       recordAll(keys);
       res.locals.flash = [{ type: 'error', message: 'Email or password is incorrect.' }];
       return res.status(401).render('auth/login', { title: 'Sign in', email });

@@ -368,3 +368,6 @@ h2, h3 { letter-spacing: -.01em; font-weight: 700; }
   table.stack .hide-phone { display: none; }
   table.stack .patient-inline { display: inline; font-weight: 650; margin-left: 6px; }
 }
+
+/* ---------- Staff portal ---------- */
+.portal-tag { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--brand-dark); background: var(--brand-soft); padding: 3px 8px; border-radius: 999px; margin-left: 4px; }

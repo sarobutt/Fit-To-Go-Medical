@@ -9,6 +9,6 @@
     <div class="field"><label for="password">Password</label><input id="password" type="password" name="password" autocomplete="current-password" required></div>
     <button class="btn block">Sign in</button>
   </form>
-  <p class="small muted" style="margin-top:16px">Patients: please <a href="/login">sign in here</a>.</p>
+  <% if (!separateStaffSite) { %><p class="small muted" style="margin-top:16px">Patients: please <a href="/login">sign in here</a>.</p><% } else { %><p class="small muted" style="margin-top:16px">This portal is for clinic staff only. Sign-ins are recorded.</p><% } %>
 </div>
 <%- include('../partials/footer') %>
