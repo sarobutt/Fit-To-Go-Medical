@@ -3,14 +3,14 @@
 <div class="grid grid-2">
   <% for (const t of tests) { %>
     <div class="card">
-      <div class="card-head"><h2><%= t.name %></h2><span class="price"><%= money(t.price_pence) %></span></div>
+      <div class="card-head"><h2><a class="plain" href="/tests/<%= t.slug %>"><%= t.name %></a></h2><span class="price"><%= money(t.price_pence) %></span></div>
       <p><%= t.description %></p>
       <dl class="details small">
         <dt>Appointment</dt><dd><%= t.duration_minutes %> minutes</dd>
         <% if (t.turnaround) { %><dt>Results</dt><dd><%= t.turnaround %></dd><% } %>
         <% if (t.preparation) { %><dt>Preparation</dt><dd><%= t.preparation %></dd><% } %>
       </dl>
-      <p style="margin-top:14px"><a class="btn small" href="/patient/book?test=<%= t.id %>">Book this test</a></p>
+      <p class="row" style="margin-top:14px"><a class="btn small accent" href="/patient/book?test=<%= t.id %>">Book this test</a><a class="btn small secondary" href="/tests/<%= t.slug %>">More about this test</a></p>
     </div>
   <% } %>
 </div>

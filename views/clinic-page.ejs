@@ -1,0 +1,36 @@
+<%- include('partials/header') %>
+<nav class="crumbs small" aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/clinics">Our clinics</a> › <span aria-current="page"><%= clinic.name %></span></nav>
+<div class="seo-hero card">
+  <div>
+    <h1><%= clinic.name %></h1>
+    <p class="lead">Medical tests and certificates in <%= clinic.city %>, with GMC-registered doctors. Book online and pay securely.</p>
+    <ul class="facts">
+      <li><span class="k">Address</span><span class="v"><%= clinic.address %>, <%= clinic.city %></span></li>
+      <% if (clinic.phone) { %><li><span class="k">Phone</span><span class="v"><a href="tel:<%= clinic.phone.replace(/\s/g, '') %>"><%= clinic.phone %></a></span></li><% } %>
+      <% if (clinic.opening_hours) { %><li><span class="k">Opening hours</span><span class="v"><%= clinic.opening_hours %></span></li><% } %>
+      <% if (nextDate) { %><li><span class="k">Next available</span><span class="v"><%= time.formatDate(nextDate) %></span></li><% } %>
+    </ul>
+    <div class="row">
+      <a class="btn accent" href="/patient/book?clinic=<%= clinic.id %>">Book at this clinic</a>
+      <a class="btn secondary" href="https://www.google.com/maps/search/?api=1&amp;query=<%= encodeURIComponent(clinic.name + ', ' + clinic.address + ', ' + clinic.city) %>" target="_blank" rel="noopener">Directions</a>
+    </div>
+  </div>
+</div>
+
+<section class="card flush" style="margin-top:16px">
+  <h2>Tests available here</h2>
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>Test</th><th>Results</th><th class="num">Price</th><th></th></tr></thead>
+    <tbody>
+    <% for (const t of tests) { %>
+      <tr>
+        <td class="cell-main"><a href="/tests/<%= t.slug %>"><strong><%= t.name %></strong></a><div class="small muted"><%= t.duration_minutes %> min</div></td>
+        <td data-label="Results"><%= t.turnaround || '—' %></td>
+        <td class="num" data-label="Price"><%= money(t.price_pence) %></td>
+        <td class="right cell-actions"><a class="btn small secondary" href="/patient/book?test=<%= t.id %>&amp;clinic=<%= clinic.id %>">Book</a></td>
+      </tr>
+    <% } %>
+    </tbody>
+  </table></div>
+</section>
+<%- include('partials/footer') %>

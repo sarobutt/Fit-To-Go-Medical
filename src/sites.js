@@ -37,9 +37,15 @@ function siteSplit(req, res, next) {
 
 /** Search engines: index the patient site, never the staff portal. */
 function robots(req, res) {
-  res.type('text/plain').send(req.isStaffSite
-    ? 'User-agent: *\nDisallow: /\n'
-    : 'User-agent: *\nAllow: /\n');
+  if (req.isStaffSite) return res.type('text/plain').send('User-agent: *\nDisallow: /\n');
+  const privatePaths = ['/patient', '/login', '/register', '/payments', '/forgot-password', '/reset-password', '/account'];
+  res.type('text/plain').send([
+    'User-agent: *',
+    'Allow: /',
+    ...privatePaths.map((p) => `Disallow: ${p}`),
+    `Sitemap: ${config.appUrl}/sitemap.xml`,
+    '',
+  ].join('\n'));
 }
 
 module.exports = { siteSplit, robots, STAFF_PATHS };

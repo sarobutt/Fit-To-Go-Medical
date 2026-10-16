@@ -3,8 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><%= typeof title !== 'undefined' ? title + ' · ' : '' %><%= siteName %></title>
-  <meta name="description" content="<%= siteName %> – book medical tests online at a clinic near you.">
+<% const pageTitle = (typeof title !== 'undefined' ? title + ' · ' : '') + siteName;
+   const pageDescription = typeof description !== 'undefined' ? description : `${siteName} – book medical tests online at a clinic near you.`; %>
+  <title><%= pageTitle %></title>
+  <meta name="description" content="<%= pageDescription %>">
+  <% if (noindex) { %><meta name="robots" content="noindex, nofollow"><% } %>
+  <% if (canonical) { %>
+  <link rel="canonical" href="<%= canonical %>">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="<%= siteName %>">
+  <meta property="og:locale" content="en_GB">
+  <meta property="og:title" content="<%= pageTitle %>">
+  <meta property="og:description" content="<%= pageDescription %>">
+  <meta property="og:url" content="<%= canonical %>">
+  <meta name="twitter:card" content="summary">
+  <% } %>
+  <% for (const block of (typeof jsonLdBlocks !== 'undefined' ? jsonLdBlocks : [])) { %>
+  <script type="application/ld+json"><%- block %></script>
+  <% } %>
+  <meta name="theme-color" content="#12586e">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/css/styles.css">
   <script src="/js/early.js"></script>

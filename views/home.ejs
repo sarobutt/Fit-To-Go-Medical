@@ -23,7 +23,7 @@
   <div class="grid grid-3">
     <% for (const t of tests.slice(0, 6)) { %>
       <div class="card">
-        <h3><%= t.name %></h3>
+        <h3><a class="plain stretched" href="/tests/<%= t.slug %>"><%= t.name %></a></h3>
         <p class="muted small"><%= t.description %></p>
         <div class="row"><span class="price"><%= money(t.price_pence) %></span><span class="spacer"></span><span class="muted small"><%= t.duration_minutes %> min</span></div>
       </div>
@@ -37,7 +37,7 @@
   <div class="grid grid-3">
     <% for (const c of clinics) { %>
       <div class="card">
-        <h3><%= c.name %></h3>
+        <h3><a class="plain stretched" href="/clinics/<%= c.slug %>"><%= c.name %></a></h3>
         <p class="muted small"><%= c.address %>, <%= c.city %></p>
         <% if (c.opening_hours) { %><p class="small"><%= c.opening_hours %></p><% } %>
       </div>

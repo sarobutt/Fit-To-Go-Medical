@@ -371,3 +371,21 @@ h2, h3 { letter-spacing: -.01em; font-weight: 700; }
 
 /* ---------- Staff portal ---------- */
 .portal-tag { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--brand-dark); background: var(--brand-soft); padding: 3px 8px; border-radius: 999px; margin-left: 4px; }
+
+/* ---------- Public test & clinic pages ---------- */
+a.plain { color: inherit; text-decoration: none; }
+a.plain:hover { color: var(--brand); text-decoration: underline; }
+.card { position: relative; }
+a.stretched::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.crumbs { color: var(--muted); margin-bottom: 12px; }
+.crumbs a { color: var(--muted); }
+.seo-hero { border-top: 4px solid var(--brand); }
+.seo-hero .lead { font-size: 1.08rem; color: var(--text-2); max-width: 65ch; }
+.facts { list-style: none; padding: 0; margin: 16px 0 20px; display: flex; flex-wrap: wrap; gap: 10px 28px; }
+.facts .k { display: block; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+.facts .v { font-weight: 650; font-size: 1.05rem; }
+.clinic-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+.faq details { border-top: 1px solid var(--border); padding: 12px 0; }
+.faq details:first-of-type { border-top: 0; }
+.faq summary { cursor: pointer; font-weight: 650; }
+.faq details p { margin: 8px 0 0; color: var(--text-2); }

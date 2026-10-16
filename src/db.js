@@ -174,6 +174,12 @@ CREATE TABLE IF NOT EXISTS data_requests (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Page addresses for search engines, e.g. /tests/fit-to-fly-pcr-test.
+ALTER TABLE tests ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE clinics ADD COLUMN IF NOT EXISTS slug TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tests_slug ON tests (slug);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_clinics_slug ON clinics (slug);
+
 CREATE TABLE IF NOT EXISTS audit_log (
   id         SERIAL PRIMARY KEY,
   user_id    INTEGER REFERENCES users(id),
@@ -210,6 +216,7 @@ function createPool(connectionString = config.databaseUrl) {
 
 async function migrate(pool) {
   await pool.query(SCHEMA);
+  await require('./seo').backfillSlugs(pool);
 }
 
 /** Runs fn(client) inside a transaction, rolling back if it throws. */

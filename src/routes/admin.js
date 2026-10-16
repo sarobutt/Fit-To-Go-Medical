@@ -9,6 +9,7 @@ const { createRepeating } = require('./doctor');
 const { audit } = require('../services/audit');
 const time = require('../time');
 const { backUrl } = require('../util');
+const seo = require('../seo');
 const consultation = require('../services/consultation');
 const { consultationRoutes, takeDraft } = require('./consultation');
 
@@ -119,6 +120,22 @@ module.exports = (db) => {
     res.render('admin/clinic-form', { title: 'New clinic', clinic: {}, doctors: [] });
   });
 
+  /**
+   * The page address for a test or clinic. Typed by the admin, or made from the name for a new one.
+   * An existing page keeps its address when left blank, because changing it loses search ranking.
+   */
+  async function pageSlug(table, body, existingId = 0) {
+    const typed = text(body.slug, 80);
+    if (typed) {
+      const slug = seo.slugify(typed);
+      const taken = await db.one(`SELECT 1 FROM ${table} WHERE slug = $1 AND id <> $2`, [slug, existingId]);
+      if (taken) throw new ValidationError(`The web address "${slug}" is already used. Choose another.`);
+      return slug;
+    }
+    if (existingId) return (await db.one(`SELECT slug FROM ${table} WHERE id = $1`, [existingId]))?.slug;
+    return seo.uniqueSlug(db, table, body.name);
+  }
+
   function clinicFields(body) {
     const f = {
       name: text(body.name, 200), address: text(body.address, 500), city: text(body.city, 100),
@@ -130,9 +147,10 @@ module.exports = (db) => {
 
   router.post('/clinics', async (req, res) => {
     const f = clinicFields(req.body);
+    const slug = await pageSlug('clinics', req.body);
     const clinic = await db.one(
-      `INSERT INTO clinics (name, address, city, phone, opening_hours) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-      [f.name, f.address, f.city, f.phone || null, f.opening_hours || null]);
+      `INSERT INTO clinics (name, address, city, phone, opening_hours, slug) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+      [f.name, f.address, f.city, f.phone || null, f.opening_hours || null, slug]);
     await audit(db, req.user.id, 'clinic.create', 'clinic', clinic.id, f);
     req.flash('success', 'Clinic created.');
     res.redirect(`/admin/clinics/${clinic.id}`);
@@ -149,9 +167,10 @@ module.exports = (db) => {
 
   router.post('/clinics/:id', async (req, res) => {
     const f = clinicFields(req.body);
+    const slug = await pageSlug('clinics', req.body, id(req.params.id));
     await db.query(
-      `UPDATE clinics SET name = $2, address = $3, city = $4, phone = $5, opening_hours = $6 WHERE id = $1`,
-      [id(req.params.id), f.name, f.address, f.city, f.phone || null, f.opening_hours || null]);
+      `UPDATE clinics SET name = $2, address = $3, city = $4, phone = $5, opening_hours = $6, slug = $7 WHERE id = $1`,
+      [id(req.params.id), f.name, f.address, f.city, f.phone || null, f.opening_hours || null, slug]);
     await audit(db, req.user.id, 'clinic.update', 'clinic', id(req.params.id), f);
     req.flash('success', 'Clinic saved.');
     res.redirect(`/admin/clinics/${id(req.params.id)}`);
@@ -189,10 +208,11 @@ module.exports = (db) => {
 
   router.post('/tests', async (req, res) => {
     const f = testFields(req.body);
+    const slug = await pageSlug('tests', req.body);
     const t = await db.one(
-      `INSERT INTO tests (name, description, preparation, price_pence, duration_minutes, turnaround)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-      [f.name, f.description, f.preparation, f.price_pence, f.duration_minutes, f.turnaround]);
+      `INSERT INTO tests (name, description, preparation, price_pence, duration_minutes, turnaround, slug)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [f.name, f.description, f.preparation, f.price_pence, f.duration_minutes, f.turnaround, slug]);
     await audit(db, req.user.id, 'test.create', 'test', t.id, f);
     req.flash('success', 'Test created.');
     res.redirect('/admin/tests');
@@ -215,10 +235,12 @@ module.exports = (db) => {
 
   router.post('/tests/:id', async (req, res) => {
     const f = testFields(req.body);
+    const slug = await pageSlug('tests', req.body, id(req.params.id));
     await db.query(
-      `UPDATE tests SET name = $2, description = $3, preparation = $4, price_pence = $5, duration_minutes = $6, turnaround = $7
+      `UPDATE tests SET name = $2, description = $3, preparation = $4, price_pence = $5, duration_minutes = $6, turnaround = $7,
+              slug = $8
         WHERE id = $1`,
-      [id(req.params.id), f.name, f.description, f.preparation, f.price_pence, f.duration_minutes, f.turnaround]);
+      [id(req.params.id), f.name, f.description, f.preparation, f.price_pence, f.duration_minutes, f.turnaround, slug]);
     await audit(db, req.user.id, 'test.update', 'test', id(req.params.id), f);
     req.flash('success', 'Test saved. Existing bookings keep the price they paid.');
     res.redirect('/admin/tests');

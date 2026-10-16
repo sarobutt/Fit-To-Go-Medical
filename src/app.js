@@ -12,6 +12,7 @@ const { STATUS_LABELS } = require('./services/bookings');
 const { ValidationError } = require('./services/availability');
 const { backUrl } = require('./util');
 const { siteSplit, robots } = require('./sites');
+const seo = require('./seo');
 const consultation = require('./services/consultation');
 
 function money(pence) {
@@ -34,12 +35,15 @@ function createApp(pool) {
     STATUS_LABELS,
     cancellationHours: config.cancellationHours,
     timeZone: config.timeZone,
+    appUrlForDisplay: config.appUrl.replace(/^https?:\/\//, ''),
     staffLoginUrl: `${config.staffBaseUrl}/staff/login`,
     consultationSummary: consultation.summary,
     OUTCOMES: consultation.OUTCOMES,
     // Defaults so the error page renders even if a request fails before these are set.
     user: null,
     isStaffSite: false,
+    canonical: null,
+    noindex: true,
     separateStaffSite: false,
     flash: [],
     csrfToken: '',
@@ -71,9 +75,29 @@ function createApp(pool) {
     next();
   });
 
+  // On the live site, send other addresses for the patient site (www., Render's onrender.com address)
+  // to the one main address, so search engines list each page once.
+  if (config.isProduction) {
+    const mainHost = new URL(config.appUrl).hostname.toLowerCase();
+    app.use((req, res, next) => {
+      const host = req.hostname.toLowerCase();
+      if (host === mainHost || host === config.staffHost || req.path === '/healthz' || req.path.startsWith('/webhooks/')) {
+        return next();
+      }
+      res.redirect(301, `${config.appUrl}${req.originalUrl}`);
+    });
+  }
+
   // Patient site and staff portal: decide which one this request is for (see src/sites.js).
   app.use(siteSplit);
   app.get('/robots.txt', robots);
+  // Search engines: canonical address for public pages, and "don't list" for everything else.
+  app.use((req, res, next) => {
+    const indexable = !req.isStaffSite && seo.isIndexable(req.path);
+    res.locals.canonical = indexable ? seo.absolute(req.path === '/' ? '/' : req.path.replace(/\/$/, '')) : null;
+    res.locals.noindex = !indexable;
+    next();
+  });
 
   // Stripe webhooks need the raw body for signature checks, so mount before the form parser.
   app.use('/webhooks', require('./routes/webhooks')(db));

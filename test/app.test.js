@@ -583,3 +583,57 @@ test('with a staff address set, staff pages exist only on the staff portal', asy
     config.staffUrl = '';
   }
 });
+
+test('search engines: test and clinic pages, descriptions, structured data, sitemap and robots', async () => {
+  const app = request(ctx.app);
+  // Each test and clinic gets a readable page address.
+  const t = await ctx.db.one('SELECT slug FROM tests WHERE id = $1', [ctx.test.id]);
+  const c = await ctx.db.one('SELECT slug FROM clinics WHERE id = $1', [ctx.clinic.id]);
+  assert.equal(t.slug, 'blood-test');
+  assert.equal(c.slug, 'central');
+
+  const testPage = await app.get('/tests/blood-test');
+  assert.equal(testPage.status, 200);
+  assert.match(testPage.text, /<title>Blood test in Leeds – £49\.00 · Fit to go medical<\/title>/);
+  assert.match(testPage.text, /<link rel="canonical" href="http:\/\/localhost:3000\/tests\/blood-test">/);
+  assert.match(testPage.text, /<meta name="description" content="[^"]{20,160}">/);
+  assert.doesNotMatch(testPage.text, /name="robots"/);
+  const blocks = [...testPage.text.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1]));
+  assert.deepEqual(blocks.map((b) => b['@type']), ['Service', 'FAQPage', 'BreadcrumbList']);
+  assert.equal(blocks[0].offers.price, '49.00');
+  assert.equal(blocks[0].offers.priceCurrency, 'GBP');
+
+  const clinicPage = await app.get('/clinics/central');
+  assert.equal(clinicPage.status, 200);
+  const clinicLd = JSON.parse(clinicPage.text.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
+  assert.equal(clinicLd['@type'], 'MedicalClinic');
+  assert.equal(clinicLd.address.addressLocality, 'Leeds');
+  assert.equal((await app.get('/tests/no-such-test')).status, 404);
+
+  // Hidden tests don't have a public page.
+  await ctx.db.query('UPDATE tests SET is_active = FALSE WHERE id = $1', [ctx.test.id]);
+  assert.equal((await app.get('/tests/blood-test')).status, 404);
+  await ctx.db.query('UPDATE tests SET is_active = TRUE WHERE id = $1', [ctx.test.id]);
+
+  // Private pages are marked "don't list".
+  for (const path of ['/login', '/register', '/forgot-password']) {
+    assert.match((await app.get(path)).text, /<meta name="robots" content="noindex, nofollow">/, path);
+  }
+  assert.doesNotMatch((await app.get('/login')).text, /rel="canonical"/);
+
+  const sitemap = await app.get('/sitemap.xml');
+  assert.equal(sitemap.headers['content-type'], 'application/xml; charset=utf-8');
+  for (const path of ['/', '/tests', '/clinics', '/tests/blood-test', '/clinics/central', '/privacy']) {
+    assert.ok(sitemap.text.includes(`<loc>http://localhost:3000${path}</loc>`), path);
+  }
+  const robots = await app.get('/robots.txt');
+  assert.match(robots.text, /Disallow: \/patient/);
+  assert.match(robots.text, /Sitemap: http:\/\/localhost:3000\/sitemap.xml/);
+
+  // An admin renaming a test keeps its address unless they change it.
+  const admin = await login(ctx.app, 'admin@test.io');
+  await admin.post$(`/admin/tests/${ctx.test.id}`, { name: 'Full blood test', price: '49', duration_minutes: 15 });
+  assert.equal((await ctx.db.one('SELECT slug FROM tests WHERE id = $1', [ctx.test.id])).slug, 'blood-test');
+  await admin.post$('/admin/tests', { name: 'Fit-to-Fly PCR Test', price: '39.99', duration_minutes: 15 });
+  assert.equal((await ctx.db.one(`SELECT slug FROM tests WHERE name = 'Fit-to-Fly PCR Test'`)).slug, 'fit-to-fly-pcr-test');
+});

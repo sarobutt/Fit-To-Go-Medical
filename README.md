@@ -8,6 +8,14 @@ A booking website for a medical-testing clinic. It has three kinds of user:
 | **Doctor** | See the day's patients and **check them in** (or mark them as a no-show). Record clinical notes and a result summary for the patient, and see a patient's earlier visits. **Publish availability**, meaning sessions at their clinics that are split into bookable slots and can repeat weekly. Block or unblock single slots. |
 | **Admin** (superuser) | See an overview dashboard: revenue, bookings per day, and how full each clinic is along with its completions, cancellations and no-shows. Manage clinics and tests/prices. Add doctors, **switch each doctor's permissions on and off**, and choose which clinics each doctor works at. View and edit **patient records** with their full appointment, result and payment history. Manage every appointment: check in, complete, cancel with a Stripe refund. Publish availability for any doctor. Deactivate any account or reset its password, add more admins, and read the full audit log. |
 
+## Search engines (SEO)
+
+- **A page for every test and clinic**, e.g. `/tests/fit-to-fly-pcr-test` and `/clinics/fit-to-go-medical-city-centre`, with price, results time, preparation, locations, FAQs and booking buttons. Admins can change a page's address on the test or clinic form. Avoid changing it once Google has listed the page, because that loses ranking.
+- **A title and description written for each page**, including the test or clinic, the city and the price.
+- **Structured data** (schema.org): the organisation, each clinic (address and phone), each test (price), FAQs and breadcrumbs. Google can show these directly in results.
+- **`/sitemap.xml`** lists every public page, and **`/robots.txt`** points to it and keeps account pages out.
+- **Canonical address:** on the live site, `www.` and Render's `onrender.com` address redirect to `APP_URL`, so each page is listed once. Sign-in, account, payment and staff pages are marked "don't list".
+
 ## Two websites: patients and staff
 
 Set `STAFF_URL` to the staff portal's own domain, and `APP_URL` to the patient domain (`https://fittogomedical.co.uk`). Both domains point to the same Render service.

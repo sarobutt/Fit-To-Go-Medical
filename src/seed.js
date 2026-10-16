@@ -54,6 +54,7 @@ async function seed({ demo = false } = {}) {
       console.log(`Created ${TESTS.length} tests`);
     }
 
+    await require('./seo').backfillSlugs(pool);
     if (demo) await seedDemo(db);
   } finally {
     await pool.end();

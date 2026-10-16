@@ -1,0 +1,43 @@
+<%- include('partials/header') %>
+<nav class="crumbs small" aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/tests">Tests &amp; prices</a> › <span aria-current="page"><%= test.name %></span></nav>
+<div class="seo-hero card">
+  <div>
+    <h1><%= test.name %></h1>
+    <% if (test.description) { %><p class="lead"><%= test.description %></p><% } %>
+    <ul class="facts">
+      <li><span class="k">Price</span><span class="v"><%= money(test.price_pence) %></span></li>
+      <li><span class="k">Appointment</span><span class="v"><%= test.duration_minutes %> min</span></li>
+      <% if (test.turnaround) { %><li><span class="k">Results</span><span class="v"><%= test.turnaround %></span></li><% } %>
+    </ul>
+    <a class="btn accent" href="/patient/book?test=<%= test.id %>">Book a <%= test.name %></a>
+  </div>
+</div>
+
+<div class="grid grid-2" style="margin-top:16px;align-items:start">
+  <section class="card">
+    <h2>Before you come</h2>
+    <p><%= test.preparation || 'No special preparation is needed.' %></p>
+    <p class="muted small" style="margin:0">Please bring photo ID and arrive 10 minutes early.</p>
+  </section>
+  <section class="card">
+    <h2>Where to have it</h2>
+    <% if (!clinics.length) { %><p class="muted">Clinic details coming soon.</p><% } %>
+    <ul class="clinic-list">
+      <% for (const c of clinics) { %>
+        <li>
+          <a href="/clinics/<%= c.slug %>"><strong><%= c.name %></strong></a>
+          <div class="small muted"><%= c.address %>, <%= c.city %></div>
+          <a class="small" href="/patient/book?test=<%= test.id %>&amp;clinic=<%= c.id %>">Book here →</a>
+        </li>
+      <% } %>
+    </ul>
+  </section>
+</div>
+
+<section class="card faq" style="margin-top:16px">
+  <h2>Frequently asked questions</h2>
+  <% for (const [q, a] of faqs) { %>
+    <details><summary><%= q %></summary><p><%= a %></p></details>
+  <% } %>
+</section>
+<%- include('partials/footer') %>

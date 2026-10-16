@@ -11,6 +11,7 @@
         <div class="field"><label for="phone">Phone</label><input id="phone" name="phone" type="tel" value="<%= clinic.phone || '' %>"></div>
       </div>
       <div class="field"><label for="hours">Opening hours</label><input id="hours" name="opening_hours" type="text" value="<%= clinic.opening_hours || '' %>" placeholder="Mon–Fri 8am–6pm, Sat 9am–1pm"></div>
+      <div class="field"><label for="slug">Web address <span class="hint">(<%= appUrlForDisplay %>/clinics/<strong><%= clinic.slug || 'made-from-the-name' %></strong> – leave blank to keep it. Changing it later loses search ranking.)</span></label><input id="slug" name="slug" type="text" value="<%= clinic.slug || '' %>" pattern="[a-zA-Z0-9 -]*" maxlength="80"></div>
       <button class="btn"><%= clinic.id ? 'Save clinic' : 'Create clinic' %></button>
     </form>
   </div>

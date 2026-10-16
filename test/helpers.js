@@ -76,6 +76,7 @@ async function setup() {
   const clinic = await db.one(`INSERT INTO clinics (name, address, city) VALUES ('Central', '1 High St', 'Leeds') RETURNING *`);
   await db.query('INSERT INTO doctor_clinics VALUES ($1, $2)', [doctor.id, clinic.id]);
   const test = await db.one(`INSERT INTO tests (name, price_pence) VALUES ('Blood test', 4900) RETURNING *`);
+  await require('../src/seo').backfillSlugs(pool);
 
   return { pool, db, app, stripe, mail, admin, doctor, patient, patient2, clinic, test };
 }
