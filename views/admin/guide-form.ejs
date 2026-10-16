@@ -1,0 +1,30 @@
+<%- include('../partials/header') %>
+<div class="page-head"><div><p class="muted small"><a href="/admin/guides">← Guides</a></p><h1><%= guide.id ? guide.title : 'New guide' %></h1>
+  <% if (guide.id) { %><p><span class="badge <%= guide.is_published ? 'active' : 'inactive' %>"><%= guide.is_published ? 'Published' : 'Draft – not on the website yet' %></span></p><% } %></div>
+  <% if (guide.id) { %>
+  <div class="row">
+    <a class="btn secondary" href="/admin/guides/<%= guide.id %>/preview">Preview</a>
+    <form method="post" action="/admin/guides/<%= guide.id %>/publish" class="inline-form"><%- include('../partials/csrf') %><button class="btn <%= guide.is_published ? 'secondary' : 'accent' %>"><%= guide.is_published ? 'Unpublish' : 'Publish' %></button></form>
+  </div>
+  <% } %>
+</div>
+<div class="card" style="max-width:820px">
+  <form method="post" action="/admin/guides<%= guide.id ? '/' + guide.id : '' %>">
+    <%- include('../partials/csrf') %>
+    <div class="field"><label for="title">Title <span class="hint">(write it the way people search, e.g. "What happens at a pre-employment medical?")</span></label><input id="title" name="title" type="text" value="<%= guide.title || '' %>" maxlength="200" required></div>
+    <div class="field"><label for="slug">Web address <span class="hint">(<%= appUrlForDisplay %>/guides/<strong><%= guide.slug || 'made-from-the-title' %></strong> – leave blank to keep it)</span></label><input id="slug" name="slug" type="text" value="<%= guide.slug || '' %>" pattern="[a-zA-Z0-9 -]*" maxlength="80"></div>
+    <div class="field"><label for="summary">Summary <span class="hint">(1–2 sentences – shown under the title in Google)</span></label><textarea id="summary" name="summary" rows="2" maxlength="500"><%= guide.summary || '' %></textarea></div>
+    <div class="field"><label for="terms">Searches this answers <span class="hint">(comma-separated, e.g. "fit to fly letter, do I need a fit to fly certificate")</span></label><textarea id="terms" name="search_terms" rows="2"><%= guide.search_terms || '' %></textarea></div>
+    <div class="field"><label for="body">Text <span class="hint">(blank line = new paragraph · "## " starts a heading · "- " starts a bullet · **bold**)</span></label><textarea id="body" name="body" rows="22" required><%= guide.body || '' %></textarea></div>
+    <div class="row">
+      <button class="btn"><%= guide.id ? 'Save guide' : 'Save as draft' %></button>
+      <span class="spacer"></span>
+    </div>
+  </form>
+  <% if (guide.id) { %>
+  <form method="post" action="/admin/guides/<%= guide.id %>/delete" class="inline-form" style="margin-top:16px" data-confirm="Delete this guide? This can't be undone.">
+    <%- include('../partials/csrf') %><button class="btn small danger">Delete guide</button>
+  </form>
+  <% } %>
+</div>
+<%- include('../partials/footer') %>

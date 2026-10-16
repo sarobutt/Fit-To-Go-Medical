@@ -179,6 +179,23 @@ ALTER TABLE tests ADD COLUMN IF NOT EXISTS slug TEXT;
 ALTER TABLE clinics ADD COLUMN IF NOT EXISTS slug TEXT;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_tests_slug ON tests (slug);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_clinics_slug ON clinics (slug);
+-- Other names people search for (shown as "Also known as"), and a longer write-up for the test's page.
+ALTER TABLE tests ADD COLUMN IF NOT EXISTS search_terms TEXT;
+ALTER TABLE tests ADD COLUMN IF NOT EXISTS details TEXT;
+
+-- Articles that answer what people search for, e.g. "what is a fit to fly certificate".
+CREATE TABLE IF NOT EXISTS guides (
+  id           SERIAL PRIMARY KEY,
+  title        TEXT NOT NULL,
+  slug         TEXT NOT NULL UNIQUE,
+  summary      TEXT,
+  body         TEXT NOT NULL DEFAULT '',
+  search_terms TEXT,
+  is_published BOOLEAN NOT NULL DEFAULT FALSE,
+  published_at TIMESTAMPTZ,
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
 CREATE TABLE IF NOT EXISTS audit_log (
   id         SERIAL PRIMARY KEY,
@@ -217,6 +234,7 @@ function createPool(connectionString = config.databaseUrl) {
 async function migrate(pool) {
   await pool.query(SCHEMA);
   await require('./seo').backfillSlugs(pool);
+  await require('./content').addStarterContent(pool);
 }
 
 /** Runs fn(client) inside a transaction, rolling back if it throws. */

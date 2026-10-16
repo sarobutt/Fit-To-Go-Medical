@@ -11,6 +11,8 @@
     </div>
     <div class="field"><label for="slug">Web address <span class="hint">(<%= appUrlForDisplay %>/tests/<strong><%= test.slug || 'made-from-the-name' %></strong> – leave blank to keep it. Changing it later loses search ranking.)</span></label><input id="slug" name="slug" type="text" value="<%= test.slug || '' %>" pattern="[a-zA-Z0-9 -]*" maxlength="80"></div>
     <div class="field"><label for="description">Description <span class="hint">(shown on the test's own web page and in Google – 1–3 sentences on what it is and who it's for)</span></label><textarea id="description" name="description"><%= test.description || '' %></textarea></div>
+    <div class="field"><label for="terms">Other names people search for <span class="hint">(comma-separated, e.g. "fit to fly certificate, travel PCR test". Shown on the page as "Also known as" so Google matches these searches. Only add names that really describe this test.)</span></label><textarea id="terms" name="search_terms" rows="2"><%= test.search_terms || '' %></textarea></div>
+    <div class="field"><label for="details">More about this test <span class="hint">(optional – a longer write-up for the test's page: who needs it, what happens, what's included. Blank line = new paragraph · "## " starts a heading · "- " starts a bullet · **bold**)</span></label><textarea id="details" name="details" rows="8"><%= test.details || '' %></textarea></div>
     <div class="field"><label for="prep">Preparation instructions</label><textarea id="prep" name="preparation"><%= test.preparation || '' %></textarea></div>
     <button class="btn"><%= test.id ? 'Save test' : 'Create test' %></button>
   </form>

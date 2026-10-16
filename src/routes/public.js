@@ -2,6 +2,7 @@ const express = require('express');
 const config = require('../config');
 const seo = require('../seo');
 const bookings = require('../services/bookings');
+const richtext = require('../richtext');
 
 const money = (pence) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: config.currency.toUpperCase() })
   .format(pence / 100);
@@ -33,6 +34,17 @@ function testFaqs(test, clinics, cancellationHours) {
   ];
 }
 
+/** Each city with clinics: { name, slug, clinics }. */
+function cityList(clinics) {
+  const map = new Map();
+  for (const c of clinics) {
+    const slug = seo.slugify(c.city);
+    if (!map.has(slug)) map.set(slug, { name: c.city, slug, clinics: [] });
+    map.get(slug).clinics.push(c);
+  }
+  return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
 function breadcrumbs(items) {
   return {
     '@context': 'https://schema.org',
@@ -50,13 +62,14 @@ module.exports = (db) => {
     const tests = await db.all('SELECT * FROM tests WHERE is_active ORDER BY price_pence, name');
     const clinics = await activeClinics();
     const cities = listCities(clinics);
+    const guides = (await publishedGuides()).slice(0, 3);
     const from = tests.length ? Math.min(...tests.map((t) => t.price_pence)) : null;
     res.render('home', {
       title: `Medical tests & certificates${cities ? ` in ${cities}` : ''}`,
       description: snippet(`Book fit-to-fly, pre-employment, driver and blood tests online${cities ? ` in ${cities}` : ''}`
         + `${from ? ` from ${money(from)}` : ''}. GMC-registered doctors, same-week appointments and certificates in your online account.`),
       jsonLdBlocks: [seo.jsonLd(seo.organisation(clinics))],
-      tests, clinics,
+      tests, clinics, guides, cityPages: cityList(clinics),
     });
   });
 
@@ -70,22 +83,82 @@ module.exports = (db) => {
     });
   });
 
-  router.get('/tests/:slug', async (req, res, next) => {
+  /**
+   * A test's page. With a city ("/tests/full-blood-count/leeds") it's the same test at that city's clinics,
+   * so searches like "blood test Leeds" find a page made for them.
+   */
+  async function testPage(req, res, next) {
     const test = await db.one('SELECT * FROM tests WHERE slug = $1 AND is_active', [req.params.slug]);
     if (!test) return next();
-    const clinics = await activeClinics();
+    const allClinics = await activeClinics();
+    const cities = cityList(allClinics);
+    const city = req.params.city ? cities.find((c) => c.slug === req.params.city) : null;
+    if (req.params.city && !city) return next();
+    const clinics = city ? city.clinics : allClinics;
+    const where = city ? city.name : listCities(clinics);
+    const path = `/tests/${test.slug}${city ? `/${city.slug}` : ''}`;
     const faqs = testFaqs(test, clinics, config.cancellationHours);
-    const cities = listCities(clinics);
+    const alsoKnownAs = seo.terms(test.search_terms);
+    const crumbs = [['Home', '/'], ['Tests & prices', '/tests'], [test.name, `/tests/${test.slug}`]];
+    if (city) crumbs.push([city.name, path]);
     res.render('test-page', {
-      title: `${test.name}${cities ? ` in ${cities}` : ''} – ${money(test.price_pence)}`,
-      description: snippet(`${test.description || test.name}. Book online for ${money(test.price_pence)}`
-        + `${test.turnaround ? `, results ${test.turnaround}` : ''}${cities ? `. Clinics in ${cities}` : ''}.`),
+      title: `${test.name}${where ? ` in ${where}` : ''} – ${money(test.price_pence)}`,
+      description: snippet(`${test.description || test.name}${city ? ` at our ${city.name} clinic${clinics.length > 1 ? 's' : ''}` : ''}.`
+        + ` Book online for ${money(test.price_pence)}${test.turnaround ? `, results ${test.turnaround}` : ''}`
+        + `${!city && where ? `. Clinics in ${where}` : ''}.`
+        + `${alsoKnownAs.length ? ` Also known as ${alsoKnownAs.slice(0, 3).join(', ')}.` : ''}`),
+      // With only one city the city page says the same as the main page, so point search engines at the main one.
+      canonical: seo.absolute(city && cities.length < 2 ? `/tests/${test.slug}` : path),
       jsonLdBlocks: [
-        seo.jsonLd(seo.testData(test, clinics)),
+        seo.jsonLd(seo.testData(test, clinics, path)),
         seo.jsonLd(seo.faqData(faqs)),
-        seo.jsonLd(breadcrumbs([['Home', '/'], ['Tests & prices', '/tests'], [test.name, `/tests/${test.slug}`]])),
+        seo.jsonLd(breadcrumbs(crumbs)),
       ],
-      test, clinics, faqs,
+      test, clinics, faqs, city, cities, alsoKnownAs, detailsHtml: richtext.render(test.details),
+    });
+  }
+  router.get('/tests/:slug', testPage);
+  router.get('/tests/:slug/:city', testPage);
+
+  // Everything we offer in one city, for searches like "medical tests Leeds" or "private medical Leeds".
+  router.get('/medical-tests/:city', async (req, res, next) => {
+    const city = cityList(await activeClinics()).find((c) => c.slug === req.params.city);
+    if (!city) return next();
+    const tests = await activeTests();
+    res.render('city-page', {
+      title: `Medical tests & certificates in ${city.name}`,
+      description: snippet(`Private medical tests in ${city.name}: ${tests.slice(0, 4).map((t) => t.name).join(', ')} and more,`
+        + ` with GMC-registered doctors. Book online${tests.length ? ` from ${money(Math.min(...tests.map((t) => t.price_pence)))}` : ''}.`),
+      jsonLdBlocks: [
+        ...city.clinics.map((c) => seo.jsonLd(seo.clinicData(c, tests))),
+        seo.jsonLd(breadcrumbs([['Home', '/'], [`Medical tests in ${city.name}`, `/medical-tests/${city.slug}`]])),
+      ],
+      city, tests,
+    });
+  });
+
+  const publishedGuides = () => db.all('SELECT * FROM guides WHERE is_published ORDER BY published_at DESC, id DESC');
+
+  router.get('/guides', async (req, res) => {
+    const guides = await publishedGuides();
+    res.render('guides', {
+      title: 'Guides & advice',
+      description: snippet(`Plain-English guides from ${config.siteName}: ${guides.slice(0, 3).map((g) => g.title).join(' · ') || 'medical tests, certificates and what to expect'}.`),
+      guides,
+    });
+  });
+
+  router.get('/guides/:slug', async (req, res, next) => {
+    const guide = await db.one('SELECT * FROM guides WHERE slug = $1 AND is_published', [req.params.slug]);
+    if (!guide) return next();
+    res.render('guide-page', {
+      title: guide.title,
+      description: snippet(guide.summary || richtext.plain(guide.body)),
+      jsonLdBlocks: [
+        seo.jsonLd(seo.guideData(guide)),
+        seo.jsonLd(breadcrumbs([['Home', '/'], ['Guides', '/guides'], [guide.title, `/guides/${guide.slug}`]])),
+      ],
+      guide, bodyHtml: richtext.render(guide.body), tests: await activeTests(), preview: false,
     });
   });
 
@@ -111,7 +184,7 @@ module.exports = (db) => {
         seo.jsonLd(seo.clinicData(clinic, tests)),
         seo.jsonLd(breadcrumbs([['Home', '/'], ['Our clinics', '/clinics'], [clinic.name, `/clinics/${clinic.slug}`]])),
       ],
-      clinic, tests, nextDate: nextDate ? nextDate.date : null,
+      clinic, tests, nextDate: nextDate ? nextDate.date : null, citySlug: seo.slugify(clinic.city),
     });
   });
 
@@ -135,10 +208,16 @@ module.exports = (db) => {
     if (req.isStaffSite) return next();
     const tests = await activeTests();
     const clinics = await activeClinics();
+    const guides = await publishedGuides();
+    const cities = cityList(clinics);
     const pages = [
       ['/', '1.0'], ['/tests', '0.9'], ['/clinics', '0.8'],
       ...tests.map((t) => [`/tests/${t.slug}`, '0.8']),
+      ...cities.map((c) => [`/medical-tests/${c.slug}`, '0.7']),
+      // Test-in-a-city pages only differ from the main test page when there's more than one city.
+      ...(cities.length > 1 ? tests.flatMap((t) => cities.map((c) => [`/tests/${t.slug}/${c.slug}`, '0.6'])) : []),
       ...clinics.map((c) => [`/clinics/${c.slug}`, '0.7']),
+      ...(guides.length ? [['/guides', '0.6'], ...guides.map((g) => [`/guides/${g.slug}`, '0.6'])] : []),
       ['/privacy', '0.2'],
     ];
     const xml = pages.map(([path, priority]) => `  <url><loc>${seo.absolute(path)}</loc><priority>${priority}</priority></url>`);

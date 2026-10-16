@@ -1,0 +1,17 @@
+<%- include('../partials/header') %>
+<div class="page-head"><div><h1>Guides</h1><p class="muted">Articles that answer what people search for, like "what is a fit-to-fly certificate". Published guides appear at <%= appUrlForDisplay %>/guides and help Google send those searches to the site.</p></div><a class="btn" href="/admin/guides/new">Write a guide</a></div>
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Guide</th><th>Status</th><th>Last edited</th><th></th></tr></thead>
+  <tbody>
+  <% for (const g of guides) { %>
+    <tr>
+      <td><a href="/admin/guides/<%= g.id %>"><strong><%= g.title %></strong></a><div class="small muted">/guides/<%= g.slug %></div></td>
+      <td><span class="badge <%= g.is_published ? 'active' : 'inactive' %>"><%= g.is_published ? 'Published' : 'Draft' %></span></td>
+      <td class="small"><%= time.formatDate(new Date(g.updated_at).toISOString().slice(0, 10)) %></td>
+      <td class="right"><form method="post" action="/admin/guides/<%= g.id %>/publish" class="inline-form"><%- include('../partials/csrf') %><button class="btn small secondary"><%= g.is_published ? 'Unpublish' : 'Publish' %></button></form></td>
+    </tr>
+  <% } %>
+  <% if (!guides.length) { %><tr><td colspan="4" class="muted">No guides yet.</td></tr><% } %>
+  </tbody>
+</table></div></div>
+<%- include('../partials/footer') %>

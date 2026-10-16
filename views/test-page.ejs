@@ -1,9 +1,10 @@
 <%- include('partials/header') %>
-<nav class="crumbs small" aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/tests">Tests &amp; prices</a> › <span aria-current="page"><%= test.name %></span></nav>
+<nav class="crumbs small" aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/tests">Tests &amp; prices</a> › <% if (city) { %><a href="/tests/<%= test.slug %>"><%= test.name %></a> › <span aria-current="page"><%= city.name %></span><% } else { %><span aria-current="page"><%= test.name %></span><% } %></nav>
 <div class="seo-hero card">
   <div>
-    <h1><%= test.name %></h1>
+    <h1><%= test.name %><% if (city) { %> in <%= city.name %><% } %></h1>
     <% if (test.description) { %><p class="lead"><%= test.description %></p><% } %>
+    <% if (alsoKnownAs.length) { %><p class="aka small"><span class="muted">Also known as:</span> <%= alsoKnownAs.join(' · ') %></p><% } %>
     <ul class="facts">
       <li><span class="k">Price</span><span class="v"><%= money(test.price_pence) %></span></li>
       <li><span class="k">Appointment</span><span class="v"><%= test.duration_minutes %> min</span></li>
@@ -12,6 +13,13 @@
     <a class="btn accent" href="/patient/book?test=<%= test.id %>">Book a <%= test.name %></a>
   </div>
 </div>
+
+<% if (detailsHtml) { %>
+<section class="card prose" style="margin-top:16px">
+  <h2>About the <%= test.name %></h2>
+  <%- detailsHtml %>
+</section>
+<% } %>
 
 <div class="grid grid-2" style="margin-top:16px;align-items:start">
   <section class="card">
@@ -31,6 +39,11 @@
         </li>
       <% } %>
     </ul>
+    <% if (cities.length > 1) { %>
+      <p class="small" style="margin:14px 0 0"><span class="muted"><%= test.name %> in:</span>
+        <% cities.forEach((c, i) => { %><%= i ? ' · ' : '' %><% if (city && c.slug === city.slug) { %><strong><%= c.name %></strong><% } else { %><a href="/tests/<%= test.slug %>/<%= c.slug %>"><%= c.name %></a><% } %><% }) %>
+      </p>
+    <% } %>
   </section>
 </div>
 

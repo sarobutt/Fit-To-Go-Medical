@@ -10,6 +10,7 @@ const { audit } = require('../services/audit');
 const time = require('../time');
 const { backUrl } = require('../util');
 const seo = require('../seo');
+const richtext = require('../richtext');
 const consultation = require('../services/consultation');
 const { consultationRoutes, takeDraft } = require('./consultation');
 
@@ -198,6 +199,7 @@ module.exports = (db) => {
     const f = {
       name: text(body.name, 200), description: text(body.description), preparation: text(body.preparation),
       price_pence: toPence(body.price), duration_minutes: parseInt(body.duration_minutes, 10), turnaround: text(body.turnaround, 200),
+      search_terms: seo.terms(text(body.search_terms, 1000)).join(', '), details: text(body.details, 20000),
     };
     if (!f.name) throw new ValidationError('Test name is required.');
     if (!Number.isInteger(f.duration_minutes) || f.duration_minutes < 5 || f.duration_minutes > 240) {
@@ -210,9 +212,9 @@ module.exports = (db) => {
     const f = testFields(req.body);
     const slug = await pageSlug('tests', req.body);
     const t = await db.one(
-      `INSERT INTO tests (name, description, preparation, price_pence, duration_minutes, turnaround, slug)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-      [f.name, f.description, f.preparation, f.price_pence, f.duration_minutes, f.turnaround, slug]);
+      `INSERT INTO tests (name, description, preparation, price_pence, duration_minutes, turnaround, slug, search_terms, details)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+      [f.name, f.description, f.preparation, f.price_pence, f.duration_minutes, f.turnaround, slug, f.search_terms || '', f.details || null]);
     await audit(db, req.user.id, 'test.create', 'test', t.id, f);
     req.flash('success', 'Test created.');
     res.redirect('/admin/tests');
@@ -238,9 +240,10 @@ module.exports = (db) => {
     const slug = await pageSlug('tests', req.body, id(req.params.id));
     await db.query(
       `UPDATE tests SET name = $2, description = $3, preparation = $4, price_pence = $5, duration_minutes = $6, turnaround = $7,
-              slug = $8
+              slug = $8, search_terms = $9, details = $10
         WHERE id = $1`,
-      [id(req.params.id), f.name, f.description, f.preparation, f.price_pence, f.duration_minutes, f.turnaround, slug]);
+      [id(req.params.id), f.name, f.description, f.preparation, f.price_pence, f.duration_minutes, f.turnaround, slug,
+        f.search_terms || '', f.details || null]);
     await audit(db, req.user.id, 'test.update', 'test', id(req.params.id), f);
     req.flash('success', 'Test saved. Existing bookings keep the price they paid.');
     res.redirect('/admin/tests');
@@ -252,6 +255,79 @@ module.exports = (db) => {
     await audit(db, req.user.id, t.is_active ? 'test.activate' : 'test.deactivate', 'test', t.id);
     req.flash('success', t.is_active ? `${t.name} is bookable again.` : `${t.name} hidden from booking.`);
     res.redirect('/admin/tests');
+  });
+
+  // ---------- Guides (articles for search engines) ----------
+  router.get('/guides', async (req, res) => {
+    const guides = await db.all('SELECT * FROM guides ORDER BY is_published, updated_at DESC');
+    res.render('admin/guides', { title: 'Guides', guides });
+  });
+
+  router.get('/guides/new', (req, res) => res.render('admin/guide-form', { title: 'New guide', guide: {} }));
+
+  function guideFields(body) {
+    const f = {
+      title: text(body.title, 200), summary: text(body.summary, 500), body: text(body.body, 50000),
+      search_terms: seo.terms(text(body.search_terms, 1000)).join(', '),
+    };
+    if (!f.title || !f.body) throw new ValidationError('A guide needs a title and some text.');
+    return f;
+  }
+
+  router.post('/guides', async (req, res) => {
+    const f = guideFields(req.body);
+    const slug = await pageSlug('guides', { ...req.body, name: f.title });
+    const g = await db.one(
+      `INSERT INTO guides (title, slug, summary, body, search_terms) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [f.title, slug, f.summary || null, f.body, f.search_terms || null]);
+    await audit(db, req.user.id, 'guide.create', 'guide', g.id, { title: f.title });
+    req.flash('success', 'Guide saved as a draft. Publish it when it\'s ready.');
+    res.redirect(`/admin/guides/${g.id}`);
+  });
+
+  router.get('/guides/:id', async (req, res) => {
+    const guide = await db.one('SELECT * FROM guides WHERE id = $1', [id(req.params.id)]);
+    if (!guide) return res.status(404).render('error', { title: 'Not found', message: 'Guide not found.' });
+    res.render('admin/guide-form', { title: guide.title, guide });
+  });
+
+  router.get('/guides/:id/preview', async (req, res) => {
+    const guide = await db.one('SELECT * FROM guides WHERE id = $1', [id(req.params.id)]);
+    if (!guide) return res.status(404).render('error', { title: 'Not found', message: 'Guide not found.' });
+    const tests = await db.all('SELECT * FROM tests WHERE is_active ORDER BY name');
+    res.render('guide-page', { title: `Preview: ${guide.title}`, guide, bodyHtml: richtext.render(guide.body), tests, preview: true });
+  });
+
+  router.post('/guides/:id', async (req, res) => {
+    const f = guideFields(req.body);
+    const slug = await pageSlug('guides', { ...req.body, name: f.title }, id(req.params.id));
+    const g = await db.one(
+      `UPDATE guides SET title = $2, slug = $3, summary = $4, body = $5, search_terms = $6, updated_at = now()
+        WHERE id = $1 RETURNING id`,
+      [id(req.params.id), f.title, slug, f.summary || null, f.body, f.search_terms || null]);
+    if (!g) throw new ValidationError('Guide not found.');
+    await audit(db, req.user.id, 'guide.update', 'guide', g.id, { title: f.title });
+    req.flash('success', 'Guide saved.');
+    res.redirect(`/admin/guides/${g.id}`);
+  });
+
+  router.post('/guides/:id/publish', async (req, res) => {
+    const g = await db.one(
+      `UPDATE guides SET is_published = NOT is_published,
+              published_at = CASE WHEN is_published THEN published_at ELSE COALESCE(published_at, now()) END
+        WHERE id = $1 RETURNING *`, [id(req.params.id)]);
+    if (!g) throw new ValidationError('Guide not found.');
+    await audit(db, req.user.id, g.is_published ? 'guide.publish' : 'guide.unpublish', 'guide', g.id);
+    req.flash('success', g.is_published ? `"${g.title}" is now on the website.` : `"${g.title}" taken off the website.`);
+    res.redirect(backUrl(req, '/admin/guides'));
+  });
+
+  router.post('/guides/:id/delete', async (req, res) => {
+    const g = await db.one('DELETE FROM guides WHERE id = $1 RETURNING id, title', [id(req.params.id)]);
+    if (!g) throw new ValidationError('Guide not found.');
+    await audit(db, req.user.id, 'guide.delete', 'guide', g.id, { title: g.title });
+    req.flash('success', `"${g.title}" deleted.`);
+    res.redirect('/admin/guides');
   });
 
   // ---------- Doctors & permissions ----------

@@ -389,3 +389,14 @@ a.stretched::after { content: ""; position: absolute; inset: 0; border-radius: i
 .faq details:first-of-type { border-top: 0; }
 .faq summary { cursor: pointer; font-weight: 650; }
 .faq details p { margin: 8px 0 0; color: var(--text-2); }
+
+/* ---------- Long-form text (guides, test write-ups) ---------- */
+.aka { margin: -4px 0 0; }
+.prose { line-height: 1.65; }
+.prose h2 { margin-top: 1.4em; font-size: 1.2rem; }
+.prose h3 { margin-top: 1.2em; font-size: 1.05rem; }
+.prose > h2:first-child { margin-top: 0; }
+.prose ul { padding-left: 1.25em; }
+.prose li { margin: 4px 0; }
+.guide { max-width: 760px; }
+.guide h1 { margin-bottom: 8px; }

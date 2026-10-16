@@ -637,3 +637,81 @@ test('search engines: test and clinic pages, descriptions, structured data, site
   await admin.post$('/admin/tests', { name: 'Fit-to-Fly PCR Test', price: '39.99', duration_minutes: 15 });
   assert.equal((await ctx.db.one(`SELECT slug FROM tests WHERE name = 'Fit-to-Fly PCR Test'`)).slug, 'fit-to-fly-pcr-test');
 });
+
+test('search keywords: other names for tests, city pages and published guides', async () => {
+  const app = request(ctx.app);
+  const admin = await login(ctx.app, 'admin@test.io');
+
+  // Other names people search for appear on the page, in the description and in the structured data.
+  await admin.post$(`/admin/tests/${ctx.test.id}`, {
+    name: 'Blood test', price: '49', duration_minutes: 15,
+    search_terms: 'FBC blood test,  private blood test, FBC blood test', details: '## Who is it for?\n\nAnyone <b>curious</b>.\n\n- Fast\n- **Simple**',
+  });
+  const saved = await ctx.db.one('SELECT search_terms FROM tests WHERE id = $1', [ctx.test.id]);
+  assert.equal(saved.search_terms, 'FBC blood test, private blood test');
+  const page = await app.get('/tests/blood-test');
+  assert.match(page.text, /Also known as:<\/span> FBC blood test · private blood test/);
+  assert.match(page.text, /<meta name="description" content="[^"]*Also known as FBC blood test, private blood test\./);
+  assert.match(page.text, /<h2>Who is it for\?<\/h2>/);
+  assert.match(page.text, /Anyone &lt;b&gt;curious&lt;\/b&gt;/);
+  assert.match(page.text, /<li><strong>Simple<\/strong><\/li>/);
+  const service = JSON.parse(page.text.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
+  assert.deepEqual(service.alternateName, ['FBC blood test', 'private blood test']);
+
+  // City pages: one per city with a clinic, and the test in each city.
+  const leeds = await app.get('/medical-tests/leeds');
+  assert.equal(leeds.status, 200);
+  assert.match(leeds.text, /<h1>Medical tests &amp; certificates in Leeds<\/h1>/);
+  assert.match(leeds.text, /href="\/tests\/blood-test\/leeds"/);
+  assert.match(leeds.text, /<link rel="canonical" href="http:\/\/localhost:3000\/medical-tests\/leeds">/);
+  assert.equal((await app.get('/medical-tests/york')).status, 404);
+  const inLeeds = await app.get('/tests/blood-test/leeds');
+  assert.equal(inLeeds.status, 200);
+  assert.match(inLeeds.text, /<title>Blood test in Leeds/);
+  // With only one city, the city version points search engines at the main test page.
+  assert.match(inLeeds.text, /<link rel="canonical" href="http:\/\/localhost:3000\/tests\/blood-test">/);
+  assert.equal((await app.get('/tests/blood-test/york')).status, 404);
+
+  await ctx.db.query(`INSERT INTO clinics (name, address, city, slug) VALUES ('York Clinic', '2 Low St', 'York', 'york-clinic')`);
+  const inYork = await app.get('/tests/blood-test/york');
+  assert.match(inYork.text, /<link rel="canonical" href="http:\/\/localhost:3000\/tests\/blood-test\/york">/);
+  assert.match(inYork.text, /York Clinic/);
+  assert.doesNotMatch(inYork.text, /1 High St/);
+  assert.match((await app.get('/tests/blood-test')).text, /href="\/tests\/blood-test\/york"/);
+  let sitemap = (await app.get('/sitemap.xml')).text;
+  for (const path of ['/medical-tests/leeds', '/medical-tests/york', '/tests/blood-test/leeds', '/tests/blood-test/york']) {
+    assert.ok(sitemap.includes(`<loc>http://localhost:3000${path}</loc>`), path);
+  }
+  assert.ok(!sitemap.includes('/guides'));
+
+  // Guides start as drafts: not on the website until an admin publishes them.
+  await require('../src/content').addStarterContent(ctx.pool);
+  const guide = await ctx.db.one(`SELECT * FROM guides WHERE slug = 'what-happens-at-a-pre-employment-medical'`);
+  assert.equal(guide.is_published, false);
+  assert.equal((await app.get(`/guides/${guide.slug}`)).status, 404);
+  assert.match((await admin.get('/admin/guides')).text, /What happens at a pre-employment medical\?/);
+  const preview = await admin.get(`/admin/guides/${guide.id}/preview`);
+  assert.match(preview.text, /this draft is not on the website yet/);
+  assert.match(preview.text, /<meta name="robots" content="noindex, nofollow">/);
+
+  await admin.post$(`/admin/guides/${guide.id}/publish`);
+  const published = await app.get(`/guides/${guide.slug}`);
+  assert.equal(published.status, 200);
+  assert.match(published.text, /<h2>What is usually checked\?<\/h2>/);
+  const article = JSON.parse(published.text.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
+  assert.equal(article['@type'], 'Article');
+  assert.match(article.keywords, /occupational health medical/);
+  assert.match((await app.get('/guides')).text, new RegExp(`href="/guides/${guide.slug}"`));
+  assert.match((await app.get('/')).text, new RegExp(`href="/guides/${guide.slug}"`));
+  sitemap = (await app.get('/sitemap.xml')).text;
+  assert.ok(sitemap.includes(`<loc>http://localhost:3000/guides/${guide.slug}</loc>`));
+
+  // Admins write their own guides.
+  await admin.post$('/admin/guides', { title: 'Do I need a medical for a taxi licence?', body: 'Usually, yes.', search_terms: 'taxi medical' });
+  const mine = await ctx.db.one(`SELECT * FROM guides WHERE slug = 'do-i-need-a-medical-for-a-taxi-licence'`);
+  assert.equal(mine.is_published, false);
+  await admin.post$(`/admin/guides/${mine.id}`, { title: 'Taxi licence medicals', body: 'Yes.', slug: '' });
+  assert.equal((await ctx.db.one('SELECT slug FROM guides WHERE id = $1', [mine.id])).slug, 'do-i-need-a-medical-for-a-taxi-licence');
+  await admin.post$(`/admin/guides/${mine.id}/delete`);
+  assert.ok(!(await ctx.db.one('SELECT 1 FROM guides WHERE id = $1', [mine.id])));
+});

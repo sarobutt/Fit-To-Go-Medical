@@ -35,8 +35,14 @@ async function backfillSlugs(q) {
 const absolute = (path) => `${config.appUrl}${path}`;
 
 /** Pages search engines may list. Everything else (accounts, sign-in, payments) is marked noindex. */
-const INDEXABLE = [/^\/$/, /^\/tests(\/[a-z0-9-]+)?$/, /^\/clinics(\/[a-z0-9-]+)?$/, /^\/privacy$/];
+const INDEXABLE = [
+  /^\/$/, /^\/tests(\/[a-z0-9-]+){0,2}$/, /^\/clinics(\/[a-z0-9-]+)?$/, /^\/medical-tests\/[a-z0-9-]+$/,
+  /^\/guides(\/[a-z0-9-]+)?$/, /^\/privacy$/,
+];
 const isIndexable = (path) => INDEXABLE.some((re) => re.test(path));
+
+/** "fit to fly test, travel PCR test" → ['fit to fly test', 'travel PCR test'] */
+const terms = (text) => [...new Set(String(text || '').split(/[,\n]/).map((t) => t.trim()).filter(Boolean))];
 
 function organisation(clinics) {
   return {
@@ -63,19 +69,21 @@ function clinicData(clinic, tests) {
   };
 }
 
-function testData(test, clinics) {
+function testData(test, clinics, path = `/tests/${test.slug}`) {
+  const alternateName = terms(test.search_terms);
   return {
     '@context': 'https://schema.org',
     '@type': 'Service',
     serviceType: 'Medical test',
     name: test.name,
+    alternateName: alternateName.length ? alternateName : undefined,
     description: test.description || undefined,
-    url: absolute(`/tests/${test.slug}`),
+    url: absolute(path),
     provider: { '@type': 'MedicalOrganization', name: config.siteName, url: absolute('/') },
     areaServed: [...new Set(clinics.map((c) => c.city))].map((city) => ({ '@type': 'City', name: city })),
     offers: {
       '@type': 'Offer', price: (test.price_pence / 100).toFixed(2), priceCurrency: config.currency.toUpperCase(),
-      url: absolute(`/tests/${test.slug}`), availability: 'https://schema.org/InStock',
+      url: absolute(path), availability: 'https://schema.org/InStock',
     },
   };
 }
@@ -88,11 +96,26 @@ function faqData(faqs) {
   };
 }
 
+function guideData(guide) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: guide.title,
+    description: guide.summary || undefined,
+    keywords: terms(guide.search_terms).join(', ') || undefined,
+    url: absolute(`/guides/${guide.slug}`),
+    datePublished: guide.published_at ? new Date(guide.published_at).toISOString() : undefined,
+    dateModified: new Date(guide.updated_at).toISOString(),
+    author: { '@type': 'Organization', name: config.siteName, url: absolute('/') },
+    publisher: { '@type': 'Organization', name: config.siteName, logo: { '@type': 'ImageObject', url: absolute('/favicon.svg') } },
+  };
+}
+
 /** JSON for a <script type="application/ld+json"> block, safe to place inside HTML. */
 function jsonLd(data) {
   return JSON.stringify(data).replace(/</g, '\\u003c');
 }
 
 module.exports = {
-  slugify, uniqueSlug, backfillSlugs, absolute, isIndexable, organisation, clinicData, testData, faqData, jsonLd,
+  slugify, uniqueSlug, backfillSlugs, absolute, isIndexable, terms, organisation, clinicData, testData, faqData, guideData, jsonLd,
 };

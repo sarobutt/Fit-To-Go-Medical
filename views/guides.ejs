@@ -1,0 +1,12 @@
+<%- include('partials/header') %>
+<div class="page-head"><div><h1>Guides &amp; advice</h1><p class="muted">Plain-English answers about medical tests, certificates and what to expect.</p></div></div>
+<% if (!guides.length) { %><p class="muted">Guides are on their way. In the meantime, see <a href="/tests">our tests and prices</a>.</p><% } %>
+<div class="grid grid-2">
+  <% for (const g of guides) { %>
+    <div class="card">
+      <h2><a class="plain stretched" href="/guides/<%= g.slug %>"><%= g.title %></a></h2>
+      <% if (g.summary) { %><p class="muted"><%= g.summary %></p><% } %>
+    </div>
+  <% } %>
+</div>
+<%- include('partials/footer') %>

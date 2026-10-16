@@ -43,5 +43,23 @@
       </div>
     <% } %>
   </div>
+  <% if (cityPages.length) { %>
+    <p class="small" style="margin-top:12px"><span class="muted">Medical tests in:</span>
+      <% cityPages.forEach((c, i) => { %><%= i ? ' · ' : '' %><a href="/medical-tests/<%= c.slug %>"><%= c.name %></a><% }) %></p>
+  <% } %>
 </section>
+
+<% if (guides.length) { %>
+<section class="stack" style="margin-top:32px">
+  <div class="page-head"><h2>Guides &amp; advice</h2><a href="/guides">All guides →</a></div>
+  <div class="grid grid-3">
+    <% for (const g of guides) { %>
+      <div class="card">
+        <h3><a class="plain stretched" href="/guides/<%= g.slug %>"><%= g.title %></a></h3>
+        <% if (g.summary) { %><p class="muted small"><%= g.summary %></p><% } %>
+      </div>
+    <% } %>
+  </div>
+</section>
+<% } %>
 <%- include('partials/footer') %>

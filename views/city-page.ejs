@@ -1,0 +1,40 @@
+<%- include('partials/header') %>
+<nav class="crumbs small" aria-label="Breadcrumb"><a href="/">Home</a> › <span aria-current="page">Medical tests in <%= city.name %></span></nav>
+<div class="seo-hero card">
+  <div>
+    <h1>Medical tests &amp; certificates in <%= city.name %></h1>
+    <p class="lead">Private medical tests, medicals and certificates in <%= city.name %> with GMC-registered doctors. Choose a test, pick a time and pay securely online.</p>
+    <a class="btn accent" href="/patient/book<%= city.clinics.length === 1 ? '?clinic=' + city.clinics[0].id : '' %>">Book a test in <%= city.name %></a>
+  </div>
+</div>
+
+<section class="card" style="margin-top:16px">
+  <h2>Our <%= city.name %> clinic<%= city.clinics.length > 1 ? 's' : '' %></h2>
+  <ul class="clinic-list">
+    <% for (const c of city.clinics) { %>
+      <li>
+        <a href="/clinics/<%= c.slug %>"><strong><%= c.name %></strong></a>
+        <div class="small muted"><%= c.address %>, <%= c.city %></div>
+        <% if (c.opening_hours) { %><div class="small"><%= c.opening_hours %></div><% } %>
+      </li>
+    <% } %>
+  </ul>
+</section>
+
+<section class="card flush" style="margin-top:16px">
+  <h2>Tests available in <%= city.name %></h2>
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>Test</th><th>Results</th><th class="num">Price</th><th></th></tr></thead>
+    <tbody>
+    <% for (const t of tests) { %>
+      <tr>
+        <td class="cell-main"><a href="/tests/<%= t.slug %>/<%= city.slug %>"><strong><%= t.name %> in <%= city.name %></strong></a><% if (t.description) { %><div class="small muted"><%= t.description %></div><% } %></td>
+        <td data-label="Results"><%= t.turnaround || '—' %></td>
+        <td class="num" data-label="Price"><%= money(t.price_pence) %></td>
+        <td class="right cell-actions"><a class="btn small secondary" href="/patient/book?test=<%= t.id %><%= city.clinics.length === 1 ? '&clinic=' + city.clinics[0].id : '' %>">Book</a></td>
+      </tr>
+    <% } %>
+    </tbody>
+  </table></div>
+</section>
+<%- include('partials/footer') %>

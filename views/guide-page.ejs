@@ -1,0 +1,21 @@
+<%- include('partials/header') %>
+<% if (preview) { %>
+  <div class="flash info">Preview – <%= guide.is_published ? 'this is how the published guide looks.' : 'this draft is not on the website yet.' %> <a href="/admin/guides/<%= guide.id %>">Back to editing</a></div>
+<% } else { %>
+  <nav class="crumbs small" aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/guides">Guides</a> › <span aria-current="page"><%= guide.title %></span></nav>
+<% } %>
+<article class="card prose guide">
+  <h1><%= guide.title %></h1>
+  <% if (guide.summary) { %><p class="lead"><%= guide.summary %></p><% } %>
+  <p class="small muted">Updated <%= time.formatDate(new Date(guide.updated_at).toISOString().slice(0, 10)) %> · <%= siteName %></p>
+  <%- bodyHtml %>
+</article>
+<% if (tests.length) { %>
+<section class="card" style="margin-top:16px">
+  <h2>Book a test</h2>
+  <p class="row">
+    <% for (const t of tests) { %><a class="btn small secondary" href="/tests/<%= t.slug %>"><%= t.name %> · <%= money(t.price_pence) %></a><% } %>
+  </p>
+</section>
+<% } %>
+<%- include('partials/footer') %>
