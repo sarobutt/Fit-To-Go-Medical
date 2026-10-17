@@ -13,6 +13,8 @@ const seo = require('../seo');
 const richtext = require('../richtext');
 const consultation = require('../services/consultation');
 const { consultationRoutes, takeDraft } = require('./consultation');
+const config = require('../config');
+const mailer = require('../services/mailer');
 
 /** Signs a user out everywhere by deleting their stored sessions. */
 async function endSessions(db, userId) {
@@ -682,6 +684,23 @@ module.exports = (db) => {
     if (!['block', 'unblock'].includes(req.params.action)) return next();
     await availability.setSlotBlocked(db, { slotId: id(req.params.id), blocked: req.params.action === 'block', actorId: req.user.id });
     res.redirect(backUrl(req, '/admin/availability'));
+  });
+
+  // ---------- Job applications (from the Careers page) ----------
+  router.get('/applications', async (req, res) => {
+    await db.query(`DELETE FROM job_applications WHERE created_at < now() - interval '12 months'`);
+    const applications = await db.all('SELECT * FROM job_applications ORDER BY created_at DESC LIMIT 500');
+    res.render('admin/applications', {
+      title: 'Job applications', applications, careersEmail: config.careersEmail, emailOn: mailer.emailConfigured(),
+    });
+  });
+
+  router.post('/applications/:id/delete', async (req, res) => {
+    const a = await db.one('DELETE FROM job_applications WHERE id = $1 RETURNING id, name', [id(req.params.id)]);
+    if (!a) throw new ValidationError('Application not found.');
+    await audit(db, req.user.id, 'job_application.delete', 'job_application', a.id);
+    req.flash('success', `Application from ${a.name} deleted.`);
+    res.redirect('/admin/applications');
   });
 
   // ---------- Patients' data requests ----------

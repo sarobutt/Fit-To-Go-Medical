@@ -715,3 +715,65 @@ test('search keywords: other names for tests, city pages and published guides', 
   await admin.post$(`/admin/guides/${mine.id}/delete`);
   assert.ok(!(await ctx.db.one('SELECT 1 FROM guides WHERE id = $1', [mine.id])));
 });
+
+test('careers page: applicants send their details, which are saved for admins and emailed when an address is set', async () => {
+  const config = require('../src/config');
+  const app = request.agent(ctx.app);
+  const page = await app.get('/careers');
+  assert.equal(page.status, 200);
+  assert.match(page.text, /href="\/careers"/); // in the menu
+  assert.match(page.text, /<link rel="canonical" href="http:\/\/localhost:3000\/careers">/);
+  const csrf = csrfFrom(page.text);
+  const apply = (body) => app.post('/careers').type('form').send({ _csrf: csrf, ...body });
+  const details = { name: 'Nina Nurse', email: 'Nina@Example.com', phone: '07700 900123', role: 'Nurse', message: 'Ten years in A&E.', consent: 'on' };
+
+  // Missing details are explained, and what was typed is kept.
+  const bad = await apply({ ...details, role: 'Astronaut', consent: '' });
+  assert.equal(bad.status, 400);
+  assert.match(bad.text, /choose the role/);
+  assert.match(bad.text, /confirm we can use your details/);
+  assert.match(bad.text, /value="Nina Nurse"/);
+
+  // With no email address set, the application is saved for admins only.
+  const ok = await apply(details);
+  assert.equal(ok.headers.location, '/careers/thanks');
+  let saved = await ctx.db.one('SELECT * FROM job_applications');
+  assert.equal(saved.email, 'nina@example.com');
+  assert.equal(saved.emailed, false);
+  assert.equal(ctx.mail.length, 0);
+
+  // With an address set, it's emailed too, with replies going to the applicant.
+  config.careersEmail = 'jobs@clinic.test';
+  try {
+    await apply({ ...details, name: 'Dr Sam', email: 'sam@example.com', role: 'Doctor' });
+  } finally {
+    config.careersEmail = undefined;
+  }
+  const sent = ctx.mail.at(-1);
+  assert.equal(sent.to, 'jobs@clinic.test');
+  assert.equal(sent.replyTo, 'sam@example.com');
+  assert.match(sent.subject, /Job application: Doctor – Dr Sam/);
+  assert.match(sent.text, /Ten years in A&E\./);
+  assert.equal((await ctx.db.one(`SELECT emailed FROM job_applications WHERE name = 'Dr Sam'`)).emailed, true);
+
+  // Spam bots fill in the hidden field: nothing is saved.
+  await apply({ ...details, name: 'Bot', website: 'http://spam.test' });
+  assert.equal(await ctx.db.one(`SELECT 1 FROM job_applications WHERE name = 'Bot'`), undefined);
+
+  // Admins see and delete applications; applications older than 12 months are removed.
+  await ctx.db.query(`UPDATE job_applications SET created_at = now() - interval '13 months' WHERE name = 'Dr Sam'`);
+  const admin = await login(ctx.app, 'admin@test.io');
+  const list = await admin.get('/admin/applications');
+  assert.match(list.text, /Nina Nurse/);
+  assert.doesNotMatch(list.text, /Dr Sam/);
+  assert.match(list.text, /not being emailed yet/);
+  saved = await ctx.db.one(`SELECT id FROM job_applications WHERE name = 'Nina Nurse'`);
+  await admin.post$(`/admin/applications/${saved.id}/delete`);
+  assert.equal((await ctx.db.one('SELECT COUNT(*) AS n FROM job_applications')).n, 0);
+
+  // Patients and doctors can't see applications.
+  const patient = await login(ctx.app, 'pat@test.io');
+  assert.equal((await patient.get('/admin/applications')).status, 404);
+  const doctor = await login(ctx.app, 'doc@test.io');
+  assert.doesNotMatch((await doctor.get('/admin/applications')).text, /Nina|applications/i);
+});

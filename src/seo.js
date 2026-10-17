@@ -37,7 +37,7 @@ const absolute = (path) => `${config.appUrl}${path}`;
 /** Pages search engines may list. Everything else (accounts, sign-in, payments) is marked noindex. */
 const INDEXABLE = [
   /^\/$/, /^\/tests(\/[a-z0-9-]+){0,2}$/, /^\/clinics(\/[a-z0-9-]+)?$/, /^\/medical-tests\/[a-z0-9-]+$/,
-  /^\/guides(\/[a-z0-9-]+)?$/, /^\/privacy$/,
+  /^\/guides(\/[a-z0-9-]+)?$/, /^\/careers$/, /^\/privacy$/,
 ];
 const isIndexable = (path) => INDEXABLE.some((re) => re.test(path));
 

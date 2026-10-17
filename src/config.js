@@ -56,6 +56,8 @@ module.exports = {
     pass: env.SMTP_PASS,
     from: env.MAIL_FROM || `${env.SITE_NAME || 'Fit to go medical'} <no-reply@example.com>`,
   },
+  // Where Careers-page applications are emailed. Leave empty to keep them only in Admin → Job applications.
+  careersEmail: env.CAREERS_EMAIL,
 
   // Stripe Checkout sessions last at least 30 minutes, so the slot is held that long.
   holdMinutes: 30,

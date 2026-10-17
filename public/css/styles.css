@@ -400,3 +400,6 @@ a.stretched::after { content: ""; position: absolute; inset: 0; border-radius: i
 .prose li { margin: 4px 0; }
 .guide { max-width: 760px; }
 .guide h1 { margin-bottom: 8px; }
+
+/* Spam trap on public forms: hidden from people, filled in only by bots. */
+.hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }

@@ -197,6 +197,18 @@ CREATE TABLE IF NOT EXISTS guides (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Applications sent from the Careers page. Deleted automatically after 12 months.
+CREATE TABLE IF NOT EXISTS job_applications (
+  id         SERIAL PRIMARY KEY,
+  name       TEXT NOT NULL,
+  email      TEXT NOT NULL,
+  phone      TEXT,
+  role       TEXT NOT NULL,
+  message    TEXT,
+  emailed    BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS audit_log (
   id         SERIAL PRIMARY KEY,
   user_id    INTEGER REFERENCES users(id),

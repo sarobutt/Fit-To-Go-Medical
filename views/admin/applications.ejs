@@ -1,0 +1,20 @@
+<%- include('../partials/header') %>
+<div class="page-head"><div><h1>Job applications</h1>
+  <p class="muted">Sent from the Careers page. Each one is kept for 12 months and then deleted automatically.</p></div></div>
+<% if (!careersEmail || !emailOn) { %>
+  <div class="flash info">Applications are not being emailed yet<%= !careersEmail ? ' – no email address is set' : ' – outgoing email is not set up' %>. They are all saved here. To have them forwarded, set <strong>CAREERS_EMAIL</strong><%= !emailOn ? ' and the SMTP email settings' : '' %> in the site settings.</div>
+<% } else { %>
+  <p class="small muted">New applications are also emailed to <strong><%= careersEmail %></strong>.</p>
+<% } %>
+<% if (!applications.length) { %><div class="card"><p class="muted" style="margin:0">No applications yet.</p></div><% } %>
+<% for (const a of applications) { %>
+  <section class="card" style="margin-bottom:12px">
+    <div class="card-head">
+      <div><h2 style="margin:0"><%= a.name %></h2><div class="small muted"><%= a.role %> · <%= time.formatDateTime(new Date(a.created_at)) %></div></div>
+      <form method="post" action="/admin/applications/<%= a.id %>/delete" class="inline-form" data-confirm="Delete this application?"><%- include('../partials/csrf') %><button class="btn small danger">Delete</button></form>
+    </div>
+    <p class="small" style="margin:8px 0"><a href="mailto:<%= a.email %>"><%= a.email %></a><% if (a.phone) { %> · <a href="tel:<%= a.phone.replace(/\s/g, '') %>"><%= a.phone %></a><% } %></p>
+    <% if (a.message) { %><p style="white-space:pre-line;margin:0"><%= a.message %></p><% } %>
+  </section>
+<% } %>
+<%- include('../partials/footer') %>

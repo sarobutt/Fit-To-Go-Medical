@@ -38,6 +38,8 @@ services:
         sync: false
       - key: MAIL_FROM
         sync: false
+      - key: CAREERS_EMAIL    # where Careers-page applications are emailed
+        sync: false
       - key: ADMIN_EMAIL
         sync: false
       - key: ADMIN_PASSWORD

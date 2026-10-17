@@ -6,7 +6,7 @@
 const WINDOW_MS = 15 * 60_000;
 const failures = new Map();
 
-const LIMITS = { account: 10, connection: 30, staffAccount: 5, registrations: 10 };
+const LIMITS = { account: 10, connection: 30, staffAccount: 5, registrations: 10, applications: 5 };
 
 function tooManyAttempts(key, max = 10) {
   const entry = failures.get(key);

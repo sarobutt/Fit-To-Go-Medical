@@ -40,6 +40,7 @@
       <% } else if (!user) { %>
         <%- nav('/tests', 'Tests & prices') %>
         <%- nav('/clinics', 'Clinics') %>
+        <%- nav('/careers', 'Careers') %>
         <%- nav('/login', 'Sign in') %>
         <a class="btn small accent" href="/register">Book a test</a>
       <% } else if (user.role === 'patient') { %>
@@ -64,7 +65,7 @@
   <aside class="sidebar" id="admin-menu" aria-label="Admin">
     <% const groups = [
       ['Day to day', [['/admin', 'Overview'], ['/admin/appointments', 'Appointments'], ['/admin/availability', 'Availability']]],
-      ['People', [['/admin/patients', 'Patients'], ['/admin/doctors', 'Doctors'], ['/admin/admins', 'Admins']]],
+      ['People', [['/admin/patients', 'Patients'], ['/admin/doctors', 'Doctors'], ['/admin/admins', 'Admins'], ['/admin/applications', 'Job applications']]],
       ['Setup', [['/admin/clinics', 'Clinics'], ['/admin/tests', 'Tests & prices'], ['/admin/guides', 'Guides']]],
       ['Records', [['/admin/payments', 'Payments'], ['/admin/requests', 'Data requests'], ['/admin/audit', 'Audit log']]],
     ]; %>

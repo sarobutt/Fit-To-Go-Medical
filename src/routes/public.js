@@ -218,7 +218,7 @@ module.exports = (db) => {
       ...(cities.length > 1 ? tests.flatMap((t) => cities.map((c) => [`/tests/${t.slug}/${c.slug}`, '0.6'])) : []),
       ...clinics.map((c) => [`/clinics/${c.slug}`, '0.7']),
       ...(guides.length ? [['/guides', '0.6'], ...guides.map((g) => [`/guides/${g.slug}`, '0.6'])] : []),
-      ['/privacy', '0.2'],
+      ['/careers', '0.4'], ['/privacy', '0.2'],
     ];
     const xml = pages.map(([path, priority]) => `  <url><loc>${seo.absolute(path)}</loc><priority>${priority}</priority></url>`);
     res.type('application/xml').send(

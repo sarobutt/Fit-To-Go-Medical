@@ -66,6 +66,8 @@ The patient downloads both from their account. They are also **emailed** to the 
 
 Set each doctor's registration number (e.g. GMC number) in **Admin → Doctors**. To turn on email, fill in the `SMTP_*` settings in `.env` (see `.env.example`).
 
+**Careers page.** Applications sent from `/careers` are saved in **Admin → Job applications** (deleted automatically after 12 months). To have each one emailed as well, set `CAREERS_EMAIL` along with the `SMTP_*` settings.
+
 Doctor permissions an admin controls: *manage availability & slots*, *check patients in*, *record notes & results*, *view patient history*, *cancel appointments (with refund)*.
 
 ## Tech stack

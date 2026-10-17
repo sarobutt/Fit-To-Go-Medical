@@ -1,0 +1,37 @@
+<%- include('partials/header') %>
+<div class="grid grid-2" style="align-items:start">
+  <section>
+    <h1>Work with us</h1>
+    <p class="lead">We're a friendly team helping people get the medical tests and certificates they need for work, travel and driving.</p>
+    <p>We're always keen to hear from:</p>
+    <ul>
+      <li>GMC-registered doctors</li>
+      <li>Nurses and healthcare assistants</li>
+      <li>Phlebotomists</li>
+      <li>Receptionists and clinic administrators</li>
+    </ul>
+    <p class="muted">Send us a few details and we'll be in touch if there's a role that suits you.</p>
+  </section>
+  <section class="card">
+    <h2>Send your details</h2>
+    <form method="post" action="/careers">
+      <%- include('partials/csrf') %>
+      <div class="field"><label for="name">Full name</label><input id="name" name="name" type="text" value="<%= form.name || '' %>" autocomplete="name" maxlength="200" required></div>
+      <div class="form-row">
+        <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" value="<%= form.email || '' %>" autocomplete="email" maxlength="200" required></div>
+        <div class="field"><label for="phone">Phone <span class="hint">(optional)</span></label><input id="phone" name="phone" type="tel" value="<%= form.phone || '' %>" autocomplete="tel" maxlength="50"></div>
+      </div>
+      <div class="field"><label for="role">Role you're interested in</label>
+        <select id="role" name="role" required>
+          <option value="">Choose a role…</option>
+          <% for (const r of roles) { %><option<%= form.role === r ? ' selected' : '' %>><%= r %></option><% } %>
+        </select>
+      </div>
+      <div class="field"><label for="message">About you <span class="hint">(optional – experience, qualifications, when you're available)</span></label><textarea id="message" name="message" rows="5" maxlength="3000"><%= form.message || '' %></textarea></div>
+      <div class="hp" aria-hidden="true"><label for="website">Leave this empty</label><input id="website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+      <label class="checkbox small"><input type="checkbox" name="consent" required> <span>I agree to <%= siteName %> using these details to consider my application. They're kept for 12 months (<a href="/privacy">privacy policy</a>).</span></label>
+      <button class="btn block accent" style="margin-top:14px">Send my details</button>
+    </form>
+  </section>
+</div>
+<%- include('partials/footer') %>
