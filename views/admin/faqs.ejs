@@ -1,0 +1,17 @@
+<%- include('../partials/header') %>
+<div class="page-head"><div><h1>FAQs</h1><p class="muted">Shown on the FAQ page, in Google results, and (the first five) on the home page. Lower numbers come first.</p></div><a class="btn" href="/admin/faqs/new">Add a question</a></div>
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th class="num">Order</th><th>Question</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  <% for (const f of faqs) { %>
+    <tr>
+      <td class="num"><%= f.sort_order %></td>
+      <td><a href="/admin/faqs/<%= f.id %>"><strong><%= f.question %></strong></a></td>
+      <td><span class="badge <%= f.is_published ? 'active' : 'inactive' %>"><%= f.is_published ? 'Shown' : 'Hidden' %></span></td>
+      <td class="right"><form method="post" action="/admin/faqs/<%= f.id %>/delete" class="inline-form" data-confirm="Delete this question?"><%- include('../partials/csrf') %><button class="btn small danger">Delete</button></form></td>
+    </tr>
+  <% } %>
+  <% if (!faqs.length) { %><tr><td colspan="4" class="muted">No questions yet.</td></tr><% } %>
+  </tbody>
+</table></div></div>
+<%- include('../partials/footer') %>

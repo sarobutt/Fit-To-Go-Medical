@@ -1,0 +1,15 @@
+<%- include('../partials/header') %>
+<div class="page-head"><div><p class="muted small"><a href="/admin/faqs">← FAQs</a></p><h1><%= faq.id ? 'Edit question' : 'New question' %></h1></div></div>
+<div class="card" style="max-width:760px">
+  <form method="post" action="/admin/faqs<%= faq.id ? '/' + faq.id : '' %>">
+    <%- include('../partials/csrf') %>
+    <div class="field"><label for="question">Question <span class="hint">(write it the way a patient would ask it)</span></label><input id="question" name="question" type="text" value="<%= faq.question || '' %>" maxlength="300" required></div>
+    <div class="field"><label for="answer">Answer <span class="hint">(blank line = new paragraph · "- " starts a bullet · **bold**)</span></label><textarea id="answer" name="answer" rows="8" required><%= faq.answer || '' %></textarea></div>
+    <div class="form-row">
+      <div class="field"><label for="order">Order <span class="hint">(lower comes first)</span></label><input id="order" name="sort_order" type="number" value="<%= faq.sort_order || 0 %>" style="max-width:140px"></div>
+      <div class="field"><label class="checkbox" style="margin-top:28px"><input type="checkbox" name="is_published" <%= faq.is_published ? 'checked' : '' %>> <span>Show on the website</span></label></div>
+    </div>
+    <button class="btn"><%= faq.id ? 'Save question' : 'Add question' %></button>
+  </form>
+</div>
+<%- include('../partials/footer') %>

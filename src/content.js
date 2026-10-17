@@ -97,10 +97,42 @@ If the doctor finds something that may affect your fitness to drive, they will e
   },
 ];
 
-/** Fills in starter content: search terms for the default tests and draft guides. Safe to run repeatedly. */
+const config = require('./config');
+
+const FAQS = [
+  ['How do I book a test?',
+    'Choose your test, pick a clinic and a time that suits you, then pay securely online. You get a booking reference straight away – show it at reception when you arrive.'],
+  ['How much does it cost, and how do I pay?',
+    'Each test has one clear price, shown on our Tests & prices page. You pay online when you book, by card, Apple Pay or Google Pay. Payments are handled securely by Stripe, and there are no extra fees.'],
+  ['What is the free re-test promise?',
+    "Nerves, a rushed journey, a poor night's sleep or too much coffee can all affect a reading such as blood pressure. If a result is unusual for a simple, everyday reason like this, the doctor will offer you a re-test free of charge."],
+  ['What should I bring to my appointment?',
+    '- Photo ID, ideally your passport or driving licence\n- Your glasses or contact lenses, if you wear them\n- A list of any medicines you take\n- Any forms your employer, airline or the DVLA has given you\n\nPlease arrive 10 minutes early.'],
+  ['How do I get my results and certificate?',
+    'As soon as the doctor completes your appointment, your report and certificate appear in your online account, ready to download and print. We also email you a copy.'],
+  ['Can I cancel or change my booking?',
+    `Yes. You can cancel online from your account up to ${config.cancellationHours} hours before your appointment for a full refund, then book a new time.`],
+  ['Who will see me?', 'All our doctors are registered with the General Medical Council (GMC). Their GMC number is printed on your report and certificate.'],
+  ['Do I need a GP referral?', 'No. You can book directly with us online – no referral is needed.'],
+  ['How do you look after my personal information?',
+    'Your details and results are stored securely and only seen by the clinic staff who need them. You can download your data or ask us to delete it from your account at any time. Our privacy policy has the full details.'],
+];
+
+/** Adds content once only, so it doesn't come back after an admin deletes it. */
+async function once(q, key) {
+  const { rowCount } = await q.query('INSERT INTO app_settings (key, value) VALUES ($1, now()::text) ON CONFLICT DO NOTHING', [key]);
+  return rowCount === 1;
+}
+
+/** Fills in starter content: search terms for the default tests, FAQs and draft guides. Safe to run repeatedly. */
 async function addStarterContent(q) {
   for (const [name, terms] of Object.entries(SEARCH_TERMS)) {
     await q.query('UPDATE tests SET search_terms = $2 WHERE lower(name) = $1 AND search_terms IS NULL', [name, terms]);
+  }
+  if (await once(q, 'starter_faqs')) {
+    for (const [i, [question, answer]] of FAQS.entries()) {
+      await q.query('INSERT INTO faqs (question, answer, sort_order) VALUES ($1, $2, $3)', [question, answer, (i + 1) * 10]);
+    }
   }
   const { rowCount } = await q.query('SELECT 1 FROM guides LIMIT 1');
   if (rowCount) return;
@@ -113,4 +145,4 @@ async function addStarterContent(q) {
   }
 }
 
-module.exports = { SEARCH_TERMS, GUIDES, addStarterContent };
+module.exports = { SEARCH_TERMS, GUIDES, FAQS, addStarterContent };

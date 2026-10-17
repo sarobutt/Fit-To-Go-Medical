@@ -63,13 +63,14 @@ module.exports = (db) => {
     const clinics = await activeClinics();
     const cities = listCities(clinics);
     const guides = (await publishedGuides()).slice(0, 3);
+    const faqs = (await publishedFaqs()).slice(0, 5).map((f) => ({ ...f, html: richtext.render(f.answer) }));
     const from = tests.length ? Math.min(...tests.map((t) => t.price_pence)) : null;
     res.render('home', {
       title: `Medical tests & certificates${cities ? ` in ${cities}` : ''}`,
       description: snippet(`Book fit-to-fly, pre-employment, driver and blood tests online${cities ? ` in ${cities}` : ''}`
         + `${from ? ` from ${money(from)}` : ''}. GMC-registered doctors, same-week appointments and certificates in your online account.`),
       jsonLdBlocks: [seo.jsonLd(seo.organisation(clinics))],
-      tests, clinics, guides, cityPages: cityList(clinics),
+      tests, clinics, guides, faqs, cityPages: cityList(clinics),
     });
   });
 
@@ -134,6 +135,18 @@ module.exports = (db) => {
         seo.jsonLd(breadcrumbs([['Home', '/'], [`Medical tests in ${city.name}`, `/medical-tests/${city.slug}`]])),
       ],
       city, tests,
+    });
+  });
+
+  const publishedFaqs = () => db.all('SELECT * FROM faqs WHERE is_published ORDER BY sort_order, id');
+
+  router.get('/faq', async (req, res) => {
+    const faqs = await publishedFaqs();
+    res.render('faq', {
+      title: 'Frequently asked questions',
+      description: snippet(`Answers to common questions about booking, prices, appointments, results and certificates at ${config.siteName}.`),
+      jsonLdBlocks: faqs.length ? [seo.jsonLd(seo.faqData(faqs.map((f) => [f.question, richtext.plain(f.answer)])))] : [],
+      faqs: faqs.map((f) => ({ ...f, html: richtext.render(f.answer) })),
     });
   });
 
@@ -218,7 +231,7 @@ module.exports = (db) => {
       ...(cities.length > 1 ? tests.flatMap((t) => cities.map((c) => [`/tests/${t.slug}/${c.slug}`, '0.6'])) : []),
       ...clinics.map((c) => [`/clinics/${c.slug}`, '0.7']),
       ...(guides.length ? [['/guides', '0.6'], ...guides.map((g) => [`/guides/${g.slug}`, '0.6'])] : []),
-      ['/careers', '0.4'], ['/privacy', '0.2'],
+      ['/faq', '0.6'], ['/careers', '0.4'], ['/privacy', '0.2'],
     ];
     const xml = pages.map(([path, priority]) => `  <url><loc>${seo.absolute(path)}</loc><priority>${priority}</priority></url>`);
     res.type('application/xml').send(

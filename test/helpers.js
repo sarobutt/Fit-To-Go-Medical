@@ -55,7 +55,7 @@ async function setup() {
   const pool = createPool();
   await migrate(pool);
   await pool.query(`TRUNCATE users, clinics, tests, availability, slots, appointments, payments, audit_log, doctor_profiles,
-                    doctor_clinics, guides, job_applications, "session" RESTART IDENTITY CASCADE`);
+                    doctor_clinics, guides, job_applications, faqs, app_settings, "session" RESTART IDENTITY CASCADE`);
   const db = helpers(pool);
   const stripe = fakeStripe();
   payments.setStripe(stripe);

@@ -197,6 +197,22 @@ CREATE TABLE IF NOT EXISTS guides (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Questions and answers for the FAQ page and the home page.
+CREATE TABLE IF NOT EXISTS faqs (
+  id           SERIAL PRIMARY KEY,
+  question     TEXT NOT NULL,
+  answer       TEXT NOT NULL,
+  sort_order   INTEGER NOT NULL DEFAULT 0,
+  is_published BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- One-off jobs already done, e.g. adding starter content, so they don't repeat after an admin deletes it.
+CREATE TABLE IF NOT EXISTS app_settings (
+  key   TEXT PRIMARY KEY,
+  value TEXT
+);
+
 -- Applications sent from the Careers page. Deleted automatically after 12 months.
 CREATE TABLE IF NOT EXISTS job_applications (
   id         SERIAL PRIMARY KEY,

@@ -40,6 +40,7 @@
       <% } else if (!user) { %>
         <%- nav('/tests', 'Tests & prices') %>
         <%- nav('/clinics', 'Clinics') %>
+        <%- nav('/faq', 'FAQ') %>
         <%- nav('/careers', 'Careers') %>
         <%- nav('/login', 'Sign in') %>
         <a class="btn small accent" href="/register">Book a test</a>
@@ -66,7 +67,7 @@
     <% const groups = [
       ['Day to day', [['/admin', 'Overview'], ['/admin/appointments', 'Appointments'], ['/admin/availability', 'Availability']]],
       ['People', [['/admin/patients', 'Patients'], ['/admin/doctors', 'Doctors'], ['/admin/admins', 'Admins'], ['/admin/applications', 'Job applications']]],
-      ['Setup', [['/admin/clinics', 'Clinics'], ['/admin/tests', 'Tests & prices'], ['/admin/guides', 'Guides']]],
+      ['Setup', [['/admin/clinics', 'Clinics'], ['/admin/tests', 'Tests & prices'], ['/admin/guides', 'Guides'], ['/admin/faqs', 'FAQs']]],
       ['Records', [['/admin/payments', 'Payments'], ['/admin/requests', 'Data requests'], ['/admin/audit', 'Audit log']]],
     ]; %>
     <% for (const [title, links] of groups) { %>

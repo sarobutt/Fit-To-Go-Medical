@@ -59,6 +59,17 @@
   <% } %>
 </section>
 
+<% if (faqs.length) { %>
+<section class="stack" style="margin-top:32px">
+  <div class="page-head"><h2>Questions people ask</h2><a href="/faq">All questions →</a></div>
+  <div class="card faq">
+    <% for (const f of faqs) { %>
+      <details><summary><%= f.question %></summary><div class="prose"><%- f.html %></div></details>
+    <% } %>
+  </div>
+</section>
+<% } %>
+
 <% if (guides.length) { %>
 <section class="stack" style="margin-top:32px">
   <div class="page-head"><h2>Guides &amp; advice</h2><a href="/guides">All guides →</a></div>

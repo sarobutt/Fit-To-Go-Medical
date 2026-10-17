@@ -777,3 +777,43 @@ test('careers page: applicants send their details, which are saved for admins an
   const doctor = await login(ctx.app, 'doc@test.io');
   assert.doesNotMatch((await doctor.get('/admin/applications')).text, /Nina|applications/i);
 });
+
+test('FAQs: starter questions, the FAQ page with structured data, the home page, and admin editing', async () => {
+  const app = request(ctx.app);
+  const { addStarterContent, FAQS } = require('../src/content');
+  await addStarterContent(ctx.pool);
+  assert.equal((await ctx.db.one('SELECT COUNT(*) AS n FROM faqs')).n, FAQS.length);
+
+  const page = await app.get('/faq');
+  assert.equal(page.status, 200);
+  assert.match(page.text, /<link rel="canonical" href="http:\/\/localhost:3000\/faq">/);
+  assert.match(page.text, /<summary>What should I bring to my appointment\?<\/summary>/);
+  assert.match(page.text, /<li>Photo ID, ideally your passport or driving licence<\/li>/);
+  assert.match(page.text, /up to 24 hours before your appointment/);
+  const ld = JSON.parse(page.text.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
+  assert.equal(ld['@type'], 'FAQPage');
+  assert.equal(ld.mainEntity.length, FAQS.length);
+  assert.doesNotMatch(ld.mainEntity[3].acceptedAnswer.text, /^- /m); // plain text for search engines
+
+  const home = await app.get('/');
+  assert.match(home.text, /Questions people ask/);
+  assert.match(home.text, /<summary>How do I book a test\?<\/summary>/);
+  assert.match(home.text, /Everyone has an off day/);
+  assert.ok((await app.get('/sitemap.xml')).text.includes('<loc>http://localhost:3000/faq</loc>'));
+
+  // Admins add, hide, reorder and delete questions.
+  const admin = await login(ctx.app, 'admin@test.io');
+  await admin.post$('/admin/faqs', { question: 'Is there parking?', answer: 'Yes, free parking.', sort_order: '1', is_published: 'on' });
+  let faq = await ctx.db.one(`SELECT * FROM faqs WHERE question = 'Is there parking?'`);
+  assert.match((await app.get('/faq')).text, /<summary>Is there parking\?<\/summary>[\s\S]*How do I book/); // first
+  await admin.post$(`/admin/faqs/${faq.id}`, { question: 'Is there parking?', answer: 'Yes.', sort_order: '1' });
+  assert.doesNotMatch((await app.get('/faq')).text, /Is there parking/); // hidden
+  await admin.post$(`/admin/faqs/${faq.id}/delete`);
+  assert.equal(await ctx.db.one('SELECT 1 FROM faqs WHERE id = $1', [faq.id]), undefined);
+
+  // Deleted starter questions don't come back when the site restarts.
+  await ctx.db.query('DELETE FROM faqs');
+  await addStarterContent(ctx.pool);
+  assert.equal((await ctx.db.one('SELECT COUNT(*) AS n FROM faqs')).n, 0);
+  assert.match((await app.get('/faq')).text, /coming soon/);
+});

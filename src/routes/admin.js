@@ -332,6 +332,61 @@ module.exports = (db) => {
     res.redirect('/admin/guides');
   });
 
+  // ---------- FAQs ----------
+  router.get('/faqs', async (req, res) => {
+    const faqs = await db.all('SELECT * FROM faqs ORDER BY sort_order, id');
+    res.render('admin/faqs', { title: 'FAQs', faqs });
+  });
+
+  router.get('/faqs/new', async (req, res) => {
+    const last = await db.one('SELECT COALESCE(MAX(sort_order), 0) AS n FROM faqs');
+    res.render('admin/faq-form', { title: 'New question', faq: { sort_order: last.n + 10, is_published: true } });
+  });
+
+  function faqFields(body) {
+    const f = {
+      question: text(body.question, 300), answer: text(body.answer, 5000),
+      sort_order: parseInt(body.sort_order, 10) || 0, is_published: bool(body.is_published),
+    };
+    if (!f.question || !f.answer) throw new ValidationError('Enter a question and its answer.');
+    return f;
+  }
+
+  router.post('/faqs', async (req, res) => {
+    const f = faqFields(req.body);
+    const faq = await db.one(
+      'INSERT INTO faqs (question, answer, sort_order, is_published) VALUES ($1, $2, $3, $4) RETURNING id',
+      [f.question, f.answer, f.sort_order, f.is_published]);
+    await audit(db, req.user.id, 'faq.create', 'faq', faq.id, { question: f.question });
+    req.flash('success', 'Question added.');
+    res.redirect('/admin/faqs');
+  });
+
+  router.get('/faqs/:id', async (req, res) => {
+    const faq = await db.one('SELECT * FROM faqs WHERE id = $1', [id(req.params.id)]);
+    if (!faq) return res.status(404).render('error', { title: 'Not found', message: 'Question not found.' });
+    res.render('admin/faq-form', { title: 'Edit question', faq });
+  });
+
+  router.post('/faqs/:id', async (req, res) => {
+    const f = faqFields(req.body);
+    const faq = await db.one(
+      'UPDATE faqs SET question = $2, answer = $3, sort_order = $4, is_published = $5 WHERE id = $1 RETURNING id',
+      [id(req.params.id), f.question, f.answer, f.sort_order, f.is_published]);
+    if (!faq) throw new ValidationError('Question not found.');
+    await audit(db, req.user.id, 'faq.update', 'faq', faq.id, { question: f.question });
+    req.flash('success', 'Question saved.');
+    res.redirect('/admin/faqs');
+  });
+
+  router.post('/faqs/:id/delete', async (req, res) => {
+    const faq = await db.one('DELETE FROM faqs WHERE id = $1 RETURNING id', [id(req.params.id)]);
+    if (!faq) throw new ValidationError('Question not found.');
+    await audit(db, req.user.id, 'faq.delete', 'faq', faq.id);
+    req.flash('success', 'Question deleted.');
+    res.redirect('/admin/faqs');
+  });
+
   // ---------- Doctors & permissions ----------
   router.get('/doctors', async (req, res) => {
     const doctors = await db.all(

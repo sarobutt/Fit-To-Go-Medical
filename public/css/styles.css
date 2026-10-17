@@ -417,3 +417,6 @@ a.stretched::after { content: ""; position: absolute; inset: 0; border-radius: i
   .promise-text h2 { font-size: 1.4rem; }
   .promise-cta { justify-self: stretch; text-align: center; }
 }
+.faq summary { font-weight: 600; cursor: pointer; }
+.faq details .prose { margin-top: 8px; }
+.faq details .prose > :last-child { margin-bottom: 0; }
