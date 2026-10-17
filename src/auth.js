@@ -96,7 +96,10 @@ function requireRole(...roles) {
       return res.redirect('/login');
     }
     if (!roles.includes(req.user.role)) {
-      return res.status(403).render('error', { title: 'Not allowed', message: 'You do not have access to that page.' });
+      const message = roles.includes('patient')
+        ? `Booking and patient pages are for patient accounts. You're signed in as ${req.user.role === 'admin' ? 'an admin' : `a ${req.user.role}`} – sign out and use a patient account to book.`
+        : 'You do not have access to that page.';
+      return res.status(403).render('error', { title: 'Not allowed', message });
     }
     next();
   };
