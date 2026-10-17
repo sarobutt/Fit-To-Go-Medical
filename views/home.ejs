@@ -1,9 +1,19 @@
 <%- include('partials/header') %>
+<% const bookHref = user && user.role === 'patient' ? '/patient/book' : '/register'; %>
+<section class="promise card" aria-labelledby="promise-title">
+  <div class="promise-badge" aria-hidden="true"><span>Free<br>re-test</span></div>
+  <div class="promise-text">
+    <h2 id="promise-title">Everyone has an off day.</h2>
+    <p>A rushed journey, a poor night's sleep or one coffee too many can all push a blood pressure reading up. If a result comes back unusual for a simple, everyday reason, we'll <strong>re-test you free of charge</strong>. No extra fee and no fuss. That's our peace-of-mind promise.</p>
+  </div>
+  <a class="btn accent promise-cta" href="<%= bookHref %>">Book with confidence</a>
+</section>
+
 <section class="hero">
   <h1>Medical tests, booked in minutes.</h1>
   <p>Choose your test, pick a clinic and a time that suits you, and pay securely online. Our doctors will take it from there.</p>
   <div class="row">
-    <a class="btn accent" href="<%= user && user.role === 'patient' ? '/patient/book' : '/register' %>">Book a test</a>
+    <a class="btn accent" href="<%= bookHref %>">Book a test</a>
     <a class="btn ghost" href="/tests">See tests & prices</a>
   </div>
 </section>
