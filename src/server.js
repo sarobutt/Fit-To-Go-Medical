@@ -47,7 +47,16 @@ async function main() {
   await migrate(pool);
   await ensureFirstAdmin(pool);
   const app = createApp(pool);
-  app.listen(config.port, () => {
+  app.listen(config.port, (err) => {
+    if (err) {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`Port ${config.port} is already in use – another copy of the site is probably still running.\n`
+          + 'Close it (Ctrl + C in that Terminal window), or stop it with:  lsof -ti tcp:' + config.port + ' | xargs kill');
+      } else {
+        console.error(`Could not start: ${err.message}`);
+      }
+      process.exit(1);
+    }
     console.log(`${config.siteName} running at ${config.appUrl}`);
     if (config.staffUrl) console.log(`Staff portal at ${config.staffUrl}`);
   });
