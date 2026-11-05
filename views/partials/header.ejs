@@ -51,7 +51,7 @@
         <%- nav('/patient/profile', 'My details') %>
       <% } else if (user.role === 'doctor') { %>
         <%- nav('/doctor', 'Clinic day') %>
-        <%- nav('/doctor/availability', 'Availability') %>
+        <%- nav('/doctor/availability', 'My schedule') %>
         <%- nav('/doctor/account', 'Account') %>
       <% } %>
       <% if (user) { %>

@@ -114,10 +114,8 @@ module.exports = (db) => {
     res.redirect(`/doctor/appointments/${id}`);
   });
 
+  // Read-only: only admins publish, change or remove availability.
   router.get('/availability', async (req, res) => {
-    const clinics = await db.all(
-      `SELECT c.* FROM clinics c JOIN doctor_clinics dc ON dc.clinic_id = c.id
-        WHERE dc.doctor_id = $1 AND c.is_active ORDER BY c.name`, [req.user.id]);
     const sessions = await db.all(
       `SELECT av.*, c.name AS clinic_name,
               COUNT(s.id) FILTER (WHERE NOT s.is_blocked) AS open_slots,
@@ -129,24 +127,7 @@ module.exports = (db) => {
          LEFT JOIN appointments a ON a.slot_id = s.id AND a.status IN ${availability.LIVE_STATUSES}
         WHERE av.doctor_id = $1 AND av.date >= $2
         GROUP BY av.id, c.name ORDER BY av.date, av.start_time`, [req.user.id, time.todayLocal()]);
-    res.render('doctor/availability', { title: 'My availability', clinics, sessions, today: time.todayLocal() });
-  });
-
-  router.post('/availability', requirePermission('can_manage_availability'), async (req, res) => {
-    const repeatWeeks = Math.min(Math.max(parseInt(req.body.repeat_weeks, 10) || 0, 0), 12);
-    const { created, skipped } = await createRepeating(db, {
-      doctorId: req.user.id,
-      clinicId: parseInt(req.body.clinic_id, 10) || 0,
-      date: req.body.date,
-      startTime: req.body.start_time,
-      endTime: req.body.end_time,
-      slotMinutes: req.body.slot_minutes,
-      createdBy: req.user.id,
-    }, repeatWeeks);
-    const total = created.reduce((n, c) => n + c.slots, 0);
-    if (created.length) req.flash('success', `Added ${created.length} session(s) with ${total} bookable slot(s).`);
-    for (const s of skipped) req.flash('error', `Skipped ${s}`);
-    res.redirect('/doctor/availability');
+    res.render('doctor/availability', { title: 'My schedule', sessions });
   });
 
   router.get('/availability/:id', async (req, res) => {
@@ -161,23 +142,6 @@ module.exports = (db) => {
          LEFT JOIN users p ON p.id = a.patient_id
         WHERE s.availability_id = $1 ORDER BY s.starts_at`, [session.id]);
     res.render('doctor/session', { title: 'Session slots', session, slots, base: '/doctor' });
-  });
-
-  router.post('/availability/:id/delete', requirePermission('can_manage_availability'), async (req, res) => {
-    await availability.deleteAvailability(db, {
-      availabilityId: parseInt(req.params.id, 10) || 0, doctorId: req.user.id, actorId: req.user.id,
-    });
-    req.flash('success', 'Session removed.');
-    res.redirect('/doctor/availability');
-  });
-
-  router.post('/slots/:id/:action', requirePermission('can_manage_availability'), async (req, res, next) => {
-    if (!['block', 'unblock'].includes(req.params.action)) return next();
-    await availability.setSlotBlocked(db, {
-      slotId: parseInt(req.params.id, 10) || 0, doctorId: req.user.id,
-      blocked: req.params.action === 'block', actorId: req.user.id,
-    });
-    res.redirect(backUrl(req, '/doctor/availability'));
   });
 
   router.get('/account', (req, res) => {

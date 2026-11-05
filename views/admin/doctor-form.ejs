@@ -46,7 +46,7 @@
       </div>
       <div class="card">
         <h2>Clinics</h2>
-        <p class="small muted">The doctor can only publish slots at clinics ticked here.</p>
+        <p class="small muted">Availability can only be set at clinics ticked here.</p>
         <% for (const c of clinics) { %>
           <label class="checkbox"><input type="checkbox" name="clinic_ids" value="<%= c.id %>" <%= assigned.includes(c.id) ? 'checked' : '' %>> <%= c.name %><%= c.is_active ? '' : ' (closed)' %></label>
         <% } %>

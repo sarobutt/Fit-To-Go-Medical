@@ -5,8 +5,8 @@ A booking website for a medical-testing clinic. It has three kinds of user:
 | Role | What they can do |
 |---|---|
 | **Patient** | Create an account and browse tests and clinics. Pick a live time slot and pay by card, Apple Pay or Google Pay through **Stripe Checkout**. See, pay for or cancel their bookings (cancelling gives an automatic refund up to 24 h before the appointment), and read their results. |
-| **Doctor** | See the day's patients and **check them in** (or mark them as a no-show). Record clinical notes and a result summary for the patient, and see a patient's earlier visits. **Publish availability**, meaning sessions at their clinics that are split into bookable slots and can repeat weekly. Block or unblock single slots. |
-| **Admin** (superuser) | See an overview dashboard: revenue, bookings per day, and how full each clinic is along with its completions, cancellations and no-shows. Manage clinics and tests/prices. Add doctors, **switch each doctor's permissions on and off**, and choose which clinics each doctor works at. View and edit **patient records** with their full appointment, result and payment history. Manage every appointment: check in, complete, cancel with a Stripe refund. Publish availability for any doctor. Deactivate any account or reset its password, add more admins, and read the full audit log. |
+| **Doctor** | See the day's patients and **check them in** (or mark them as a no-show). Record clinical notes and a result summary for the patient, and see a patient's earlier visits. See **their schedule** (read-only – only admins set availability). |
+| **Admin** (superuser) | See an overview dashboard: revenue, bookings per day, and how full each clinic is along with its completions, cancellations and no-shows. Manage clinics and tests/prices. Add doctors, **switch each doctor's permissions on and off**, and choose which clinics each doctor works at. View and edit **patient records** with their full appointment, result and payment history. Manage every appointment: check in, complete, cancel with a Stripe refund. **Set every doctor's availability**: sessions at a clinic, split into bookable slots, optionally repeating weekly, and block or unblock single slots. Deactivate any account or reset its password, add more admins, and read the full audit log. |
 
 ## Search engines (SEO)
 
@@ -68,7 +68,7 @@ Set each doctor's registration number (e.g. GMC number) in **Admin → Doctors**
 
 **Careers page.** Applications sent from `/careers` are saved in **Admin → Job applications** (deleted automatically after 12 months). To have each one emailed as well, set `CAREERS_EMAIL` along with the `SMTP_*` settings.
 
-Doctor permissions an admin controls: *manage availability & slots*, *check patients in*, *record notes & results*, *view patient history*, *cancel appointments (with refund)*.
+Doctor permissions an admin controls: *check patients in*, *record notes & results*, *view patient history*, *cancel appointments (with refund)*.
 
 ## Tech stack
 
@@ -137,7 +137,7 @@ Optional variables: `CURRENCY` (default `gbp`), `CLINIC_TIMEZONE` (default `Euro
 - Start command: `npm start`
 - Run once after the first deploy: `npm run seed`. This creates the admin account plus starter clinics and tests, which you can then edit in the admin area.
 
-Then sign in as the admin at `https://YOUR-DOMAIN/staff/login`, go to **Doctors → Add doctor**, and assign each doctor their clinics and permissions. Doctors then publish their availability, and patients can start booking.
+Then sign in as the admin at `https://YOUR-DOMAIN/staff/login`, go to **Doctors → Add doctor**, and assign each doctor their clinics and permissions. Then set each doctor's availability in **Availability**, and patients can start booking.
 
 ## Running locally
 

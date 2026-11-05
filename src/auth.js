@@ -2,7 +2,6 @@ const crypto = require('node:crypto');
 const config = require('./config');
 
 const DOCTOR_PERMISSIONS = {
-  can_manage_availability: 'Manage availability & slots',
   can_check_in: 'Check patients in',
   can_record_results: 'Record notes & results',
   can_view_patient_history: 'View patient history',
