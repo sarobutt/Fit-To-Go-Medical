@@ -1,15 +1,37 @@
 </main>
 <% if (user && user.role === 'admin') { %></div><% } %>
 <footer class="site-footer">
-  <div class="container row">
+  <% if (isStaffSite || (user && user.role !== 'patient')) { %>
+  <div class="container row footer-bottom">
     <span>© <%= new Date().getFullYear() %> <%= siteName %></span>
     <span class="spacer"></span>
-    <% if (isStaffSite) { %>
-      <span>Staff portal · for authorised clinic staff only. Access is logged.</span>
-    <% } else { %>
-      <a href="/tests">Tests</a> · <a href="/clinics">Clinics</a> · <a href="/guides">Guides</a> · <a href="/faq">FAQ</a> · <a href="/careers">Careers</a> · <a href="/privacy">Privacy</a> · <span>Secure payments by Stripe</span>
-    <% } %>
+    <span>Staff portal · for authorised clinic staff only. Access is logged.</span>
   </div>
+  <% } else { %>
+  <div class="container footer-grid">
+    <div class="footer-about">
+      <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M9.5 4h5v5.5H20v5h-5.5V20h-5v-5.5H4v-5h5.5z"/></svg></span><%= siteName %></a>
+      <p>Medical tests, medicals and certificates with GMC-registered doctors. Book online and pay securely.</p>
+    </div>
+    <nav aria-label="Book">
+      <h2>Book</h2>
+      <ul><li><a href="/tests">Tests &amp; prices</a></li><li><a href="/clinics">Clinics</a></li><li><a href="<%= user && user.role === 'patient' ? '/patient/book' : '/register' %>">Book a test</a></li></ul>
+    </nav>
+    <nav aria-label="Help">
+      <h2>Help</h2>
+      <ul><li><a href="/faq">FAQ</a></li><li><a href="/guides">Guides</a></li><li><a href="/privacy">Privacy</a></li></ul>
+    </nav>
+    <nav aria-label="Company">
+      <h2>Company</h2>
+      <ul><li><a href="/careers">Careers</a></li><li><% if (user) { %><a href="/patient">My account</a><% } else { %><a href="/login">Sign in</a><% } %></li></ul>
+    </nav>
+  </div>
+  <div class="container row footer-bottom">
+    <span>© <%= new Date().getFullYear() %> <%= siteName %></span>
+    <span class="spacer"></span>
+    <span class="secure"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Secure payments by Stripe</span>
+  </div>
+  <% } %>
 </footer>
 <script src="/js/app.js" defer></script>
 </body>

@@ -21,19 +21,19 @@
   <% for (const block of (typeof jsonLdBlocks !== 'undefined' ? jsonLdBlocks : [])) { %>
   <script type="application/ld+json"><%- block %></script>
   <% } %>
-  <meta name="theme-color" content="#12586e">
+  <meta name="theme-color" content="#0b6e69">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/css/styles.css">
   <script src="/js/early.js"></script>
 </head>
-<body>
+<body class="<%= isStaffSite ? 'staff-site' : 'public-site' %>">
 <% const isAdmin = user && user.role === 'admin';
    const isActive = (href) => (href === '/' + (user ? user.role : '') ? path === href : path.startsWith(href));
    const nav = (href, label) => `<a href="${href}" class="${isActive(href) ? 'active' : ''}"${isActive(href) ? ' aria-current="page"' : ''}>${label}</a>`;
    const requestsCount = typeof openRequests !== 'undefined' ? openRequests : 0; %>
 <header class="site-header">
   <div class="container">
-    <a class="brand" href="<%= isStaffSite ? '/staff/login' : '/' %>"><span class="brand-mark" aria-hidden="true">✚</span><%= siteName %><% if (isStaffSite) { %> <span class="portal-tag">Staff portal</span><% } %></a>
+    <a class="brand" href="<%= isStaffSite ? '/staff/login' : '/' %>"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M9.5 4h5v5.5H20v5h-5.5V20h-5v-5.5H4v-5h5.5z"/></svg></span><%= siteName %><% if (isStaffSite) { %> <span class="portal-tag">Staff portal</span><% } %></a>
     <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-menu"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg> Menu</button>
     <nav class="nav" id="site-menu" aria-label="Main">
       <% if (!user && isStaffSite) { %>
@@ -51,7 +51,7 @@
         <%- nav('/patient/profile', 'My details') %>
       <% } else if (user.role === 'doctor') { %>
         <%- nav('/doctor', 'Clinic day') %>
-        <%- nav('/doctor/availability', 'Availability') %>
+        <%- nav('/doctor/availability', 'My schedule') %>
         <%- nav('/doctor/account', 'Account') %>
       <% } %>
       <% if (user) { %>

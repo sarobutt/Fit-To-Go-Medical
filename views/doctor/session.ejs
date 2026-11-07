@@ -1,8 +1,8 @@
 <%- include('../partials/header') %>
-<% const canEdit = base === '/admin' || user.can_manage_availability; %>
+<% const canEdit = base === '/admin'; %>
 <div class="page-head">
   <div>
-    <p class="muted small"><a href="<%= base %>/availability">← Availability</a></p>
+    <p class="muted small"><a href="<%= base %>/availability">← <%= canEdit ? 'Availability' : 'My schedule' %></a></p>
     <h1><%= time.formatDate(session.date) %>, <%= session.start_time %>–<%= session.end_time %></h1>
     <p class="muted"><%= session.clinic_name %><%= session.doctor_name ? ' · ' + session.doctor_name : '' %> · <%= session.slot_minutes %>-minute slots</p>
   </div>

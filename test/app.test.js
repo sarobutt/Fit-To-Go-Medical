@@ -171,21 +171,42 @@ test('payment arriving after the slot was re-booked is refunded automatically', 
   assert.deepEqual(rows.map((r) => r.status), ['cancelled', 'pending_payment']);
 });
 
-test('doctor publishes availability, checks a patient in and records results', async () => {
+test('admin sets doctors\' availability; doctors only see their schedule, then check patients in and record results', async () => {
+  const admin = await login(ctx.app, 'admin@test.io');
   const doc = await login(ctx.app, 'doc@test.io');
   const date = time.addDays(time.todayLocal(), 5);
-  const res = await doc.post$('/doctor/availability', {
-    clinic_id: ctx.clinic.id, date, start_time: '09:00', end_time: '10:00', slot_minutes: 20, repeat_weeks: 1,
+  const res = await admin.post$('/admin/availability', {
+    doctor_id: ctx.doctor.id, clinic_id: ctx.clinic.id, date, start_time: '09:00', end_time: '10:00', slot_minutes: 20, repeat_weeks: 1,
   });
   assert.equal(res.status, 302);
   const n = await ctx.db.one('SELECT COUNT(*) AS n FROM slots');
   assert.equal(n.n, 6); // 3 slots x 2 weeks
 
-  const overlap = await doc.post$('/doctor/availability', {
-    clinic_id: ctx.clinic.id, date, start_time: '09:30', end_time: '11:00', slot_minutes: 30,
+  const overlap = await admin.post$('/admin/availability', {
+    doctor_id: ctx.doctor.id, clinic_id: ctx.clinic.id, date, start_time: '09:30', end_time: '11:00', slot_minutes: 30,
   });
   assert.equal(overlap.status, 302);
   assert.equal((await ctx.db.one('SELECT COUNT(*) AS n FROM availability')).n, 2);
+
+  // Doctors see their sessions but cannot add, remove or block times.
+  const schedule = await doc.get('/doctor/availability');
+  assert.match(schedule.text, /My schedule/);
+  assert.match(schedule.text, /09:00–10:00/);
+  assert.doesNotMatch(schedule.text, /Publish slots|name="start_time"/);
+  const av = await ctx.db.one('SELECT id FROM availability ORDER BY id LIMIT 1');
+  const sessionPage = await doc.get(`/doctor/availability/${av.id}`);
+  assert.equal(sessionPage.status, 200);
+  assert.doesNotMatch(sessionPage.text, /Remove session|>Block</);
+  const anySlot = await ctx.db.one('SELECT id FROM slots ORDER BY id LIMIT 1');
+  for (const [path, body] of [
+    ['/doctor/availability', { clinic_id: ctx.clinic.id, date: time.addDays(date, 1), start_time: '09:00', end_time: '10:00', slot_minutes: 15 }],
+    [`/doctor/availability/${av.id}/delete`, {}],
+    [`/doctor/slots/${anySlot.id}/block`, {}],
+  ]) {
+    assert.equal((await doc.post$(path, body)).status, 404, path);
+  }
+  assert.equal((await ctx.db.one('SELECT COUNT(*) AS n FROM availability')).n, 2);
+  assert.equal((await ctx.db.one('SELECT COUNT(*) AS n FROM slots WHERE is_blocked')).n, 0);
 
   // A confirmed appointment today (inserted directly so the time can be in the past).
   const slot = await addSlot(ctx.db, { ...ctx, startsAt: `${time.todayLocal()} 00:00`, endsAt: `${time.todayLocal()} 00:15` });
@@ -220,14 +241,12 @@ test('admin controls doctor permissions and clinic assignments', async () => {
   });
   assert.equal(res.status, 302);
   const profile = await ctx.db.one('SELECT * FROM doctor_profiles WHERE user_id = $1', [ctx.doctor.id]);
-  assert.equal(profile.can_manage_availability, false);
   assert.equal(profile.can_check_in, true);
+  assert.equal(profile.can_record_results, false);
+  // Availability is no longer a doctor permission: only admins set it.
+  assert.doesNotMatch((await admin.get(`/admin/doctors/${ctx.doctor.id}`)).text, /Manage availability/);
 
   const doc = await login(ctx.app, 'doc@test.io');
-  const blocked = await doc.post$('/doctor/availability', {
-    clinic_id: ctx.clinic.id, date: time.addDays(time.todayLocal(), 3), start_time: '09:00', end_time: '10:00', slot_minutes: 15,
-  });
-  assert.equal(blocked.status, 403);
 
   // Deactivating the doctor signs them out everywhere.
   await admin.post$(`/admin/users/${ctx.doctor.id}/toggle`);

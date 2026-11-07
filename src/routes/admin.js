@@ -403,7 +403,7 @@ module.exports = (db) => {
     const draft = takeDoctorDraft(req, '/admin/doctors/new');
     res.render('admin/doctor-form', {
       title: 'Add a doctor',
-      doctor: draft || { can_manage_availability: true, can_check_in: true, can_record_results: true, can_view_patient_history: true },
+      doctor: draft || { can_check_in: true, can_record_results: true, can_view_patient_history: true },
       clinics, assigned: draft ? draft.clinic_ids : [], permissions: DOCTOR_PERMISSIONS, stats: null,
     });
   });
