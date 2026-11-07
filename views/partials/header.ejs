@@ -27,6 +27,7 @@
   <script src="/js/early.js"></script>
 </head>
 <body class="<%= isStaffSite ? 'staff-site' : 'public-site' %>">
+<a class="skip-link" href="#main">Skip to main content</a>
 <% const isAdmin = user && user.role === 'admin';
    const isActive = (href) => (href === '/' + (user ? user.role : '') ? path === href : path.startsWith(href));
    const nav = (href, label) => `<a href="${href}" class="${isActive(href) ? 'active' : ''}"${isActive(href) ? ' aria-current="page"' : ''}>${label}</a>`;
@@ -79,8 +80,8 @@
       </div>
     <% } %>
   </aside>
-  <main id="main">
+  <main id="main" tabindex="-1">
 <% } else { %>
-<main class="container" id="main">
+<main class="container" id="main" tabindex="-1">
 <% } %>
   <% for (const f of flash) { %><div class="flash <%= f.type %>" role="<%= f.type === 'error' ? 'alert' : 'status' %>"><%= f.message %></div><% } %>

@@ -126,6 +126,11 @@ p { margin: 0 0 1rem; }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 input:focus, select:focus, textarea:focus { outline: 3px solid color-mix(in srgb, var(--focus) 35%, transparent); outline-offset: 0; border-color: var(--focus); }
 
+/* Skip link: hidden until a keyboard user tabs to it. */
+.skip-link { position: absolute; left: 16px; top: -100px; z-index: 50; padding: 12px 20px; border-radius: 999px; background: var(--btn-bg); color: var(--btn-ink); font-weight: 600; text-decoration: none; }
+.skip-link:focus { top: 12px; color: var(--btn-ink); }
+main:focus { outline: none; }
+
 /* ---------- Layout ---------- */
 .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
 .container.narrow { max-width: 860px; }
