@@ -1,86 +1,167 @@
 <%- include('partials/header') %>
-<% const bookHref = user && user.role === 'patient' ? '/patient/book' : '/register'; %>
-<section class="promise card" aria-labelledby="promise-title">
-  <div class="promise-badge" aria-hidden="true"><span>Free<br>re-test</span></div>
-  <div class="promise-text">
-    <h2 id="promise-title">Everyone has an off day.</h2>
-    <p>A rushed journey, a poor night's sleep or one coffee too many can all push a blood pressure reading up. If a result comes back unusual for a simple, everyday reason, we'll <strong>re-test you free of charge</strong>. No extra fee and no fuss. That's our peace-of-mind promise.</p>
-  </div>
-  <a class="btn accent promise-cta" href="<%= bookHref %>">Book with confidence</a>
-</section>
+<% const bookHref = user && user.role === 'patient' ? '/patient/book' : '/register';
+   const cities = [...new Set(clinics.map((c) => c.city))];
+   const cityText = cities.length > 1 ? cities.slice(0, -1).join(', ') + ' & ' + cities[cities.length - 1] : cities[0];
+   const fromPrice = tests.length ? Math.min(...tests.map((t) => t.price_pence)) : null;
+   const arrow = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'; %>
 
-<section class="hero">
-  <h1>Medical tests, booked in minutes.</h1>
-  <p>Choose your test, pick a clinic and a time that suits you, and pay securely online. Our doctors will take it from there.</p>
-  <div class="row">
-    <a class="btn accent" href="<%= bookHref %>">Book a test</a>
-    <a class="btn ghost" href="/tests">See tests & prices</a>
+<section class="promise-band bleed home-top" aria-labelledby="promise-title">
+  <div class="container promise">
+    <div class="promise-badge" aria-hidden="true"><span>Free<br>re-test</span></div>
+    <div class="promise-text">
+      <h2 id="promise-title">Everyone has an off day.</h2>
+      <p>A rushed journey, a poor night's sleep or one coffee too many can all push a blood pressure reading up. If a result comes back unusual for a simple, everyday reason, we'll <strong>re-test you free of charge</strong>. No extra fee and no fuss. That's our peace-of-mind promise.</p>
+    </div>
+    <a class="btn accent promise-cta" href="<%= bookHref %>">Book with confidence</a>
   </div>
 </section>
 
-<section class="stack">
-  <h2>How it works</h2>
-  <div class="steps">
-    <div class="card"><h3>Choose your test</h3><p class="muted">From fit-to-fly and pre-employment medicals to blood tests.</p></div>
-    <div class="card"><h3>Pick a clinic & time</h3><p class="muted">See live availability from our doctors and grab a slot.</p></div>
-    <div class="card"><h3>Pay securely</h3><p class="muted">Card, Apple Pay or Google Pay through Stripe. Instant confirmation.</p></div>
-    <div class="card"><h3>Check in & get results</h3><p class="muted">Show your reference at reception. Results appear in your account.</p></div>
-  </div>
-</section>
-
-<section class="stack" style="margin-top:32px">
-  <div class="page-head"><h2>Popular tests</h2><a href="/tests">All tests →</a></div>
-  <div class="grid grid-3">
-    <% for (const t of tests.slice(0, 6)) { %>
-      <div class="card">
-        <h3><a class="plain stretched" href="/tests/<%= t.slug %>"><%= t.name %></a></h3>
-        <p class="muted small"><%= t.description %></p>
-        <div class="row"><span class="price"><%= money(t.price_pence) %></span><span class="spacer"></span><span class="muted small"><%= t.duration_minutes %> min</span></div>
+<section class="hero bleed" aria-labelledby="hero-title">
+  <div class="container hero-inner">
+    <div class="hero-copy">
+      <% if (cityText) { %><p class="eyebrow-pill">Clinics in <%= cityText %> · Book online any time</p><% } %>
+      <h1 id="hero-title">Medical tests, <span class="hl">booked in minutes.</span></h1>
+      <p>Choose your test, pick a clinic and a time that suits you, and pay securely online. Our doctors will take it from there.</p>
+      <div class="row hero-actions">
+        <a class="btn accent large" href="<%= bookHref %>">Book a test <%- arrow %></a>
+        <a class="btn ghost large" href="/tests">See tests &amp; prices</a>
       </div>
+    </div>
+    <% if (tests.length) { %>
+    <div class="hero-panel">
+      <p class="hero-panel-title">Popular right now</p>
+      <ul>
+        <% for (const t of tests.slice(0, 3)) { %>
+          <li><a href="/tests/<%= t.slug %>"><span><%= t.name %><small><%= t.duration_minutes %> min appointment</small></span><strong><%= money(t.price_pence) %></strong></a></li>
+        <% } %>
+      </ul>
+      <a class="hero-panel-more" href="/tests">All tests &amp; prices <%- arrow %></a>
+    </div>
     <% } %>
-    <% if (!tests.length) { %><p class="muted">Tests will appear here soon.</p><% } %>
+  </div>
+  <ul class="trust-strip">
+    <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3l7 3v6c0 4.2-3 7.6-7 9-4-1.4-7-4.8-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>GMC-registered doctors</li>
+    <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg>Free re-test promise</li>
+    <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Secure payments by Stripe</li>
+  </ul>
+</section>
+
+<section class="section" aria-labelledby="how-title">
+  <div class="section-head">
+    <h2 id="how-title">How it <span class="hl">works</span></h2>
+    <p>Four simple steps, from choosing a test to seeing your results.</p>
+  </div>
+  <ol class="steps">
+    <li class="card step">
+      <span class="step-icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" focusable="false"><path d="M9 5h10M9 12h10M9 19h10"/><path d="M4 5h.01M4 12h.01M4 19h.01"/></svg></span>
+      <div><h3>Choose your test</h3><p class="muted">From fit-to-fly and pre-employment medicals to blood tests.</p></div>
+    </li>
+    <li class="card step">
+      <span class="step-icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" focusable="false"><path d="M12 21s-6-5.4-6-11a6 6 0 0 1 12 0c0 5.6-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg></span>
+      <div><h3>Pick a clinic &amp; time</h3><p class="muted">See live availability from our doctors and grab a slot.</p></div>
+    </li>
+    <li class="card step">
+      <span class="step-icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" focusable="false"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg></span>
+      <div><h3>Pay securely</h3><p class="muted">Card, Apple Pay or Google Pay through Stripe. Instant confirmation.</p></div>
+    </li>
+    <li class="card step">
+      <span class="step-icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" focusable="false"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 14l2 2 4-4"/></svg></span>
+      <div><h3>Check in &amp; get results</h3><p class="muted">Show your reference at reception. Results appear in your account.</p></div>
+    </li>
+  </ol>
+</section>
+
+<section class="section tint bleed" aria-labelledby="tests-title">
+  <div class="container">
+    <div class="section-head">
+      <h2 id="tests-title">Popular <span class="hl">tests</span></h2>
+      <p>Clear, fixed prices that include your consultation<%= fromPrice ? ', from ' + money(fromPrice) : '' %>. Pay online when you book.</p>
+    </div>
+    <div class="test-tiles">
+      <% for (const t of tests.slice(0, 5)) { %>
+        <div class="test-tile">
+          <div class="test-tile-body">
+            <h3><a class="stretched" href="/tests/<%= t.slug %>"><%= t.name %></a></h3>
+            <p><%= t.description %></p>
+          </div>
+          <div class="test-tile-foot"><span class="tile-price"><%= money(t.price_pence) %></span><span class="tile-meta"><%= t.duration_minutes %> min</span><span class="round-arrow" aria-hidden="true"><%- arrow %></span></div>
+        </div>
+      <% } %>
+      <% if (tests.length) { %>
+        <div class="test-tile more">
+          <div class="test-tile-body">
+            <h3><a class="stretched" href="/tests">See all tests</a></h3>
+            <p>Compare every test, what's included and how to prepare.</p>
+          </div>
+          <div class="test-tile-foot"><span class="spacer"></span><span class="round-arrow" aria-hidden="true"><%- arrow %></span></div>
+        </div>
+      <% } else { %><p class="muted">Tests will appear here soon.</p><% } %>
+    </div>
   </div>
 </section>
 
-<section class="stack" style="margin-top:32px">
-  <h2>Our clinics</h2>
+<section class="section" aria-labelledby="clinics-title">
+  <div class="section-head">
+    <h2 id="clinics-title">Our <span class="hl">clinics</span></h2>
+    <% if (cityText) { %><p>Friendly, doctor-led clinics in <%= cityText %>.</p><% } %>
+  </div>
   <div class="grid grid-3">
     <% for (const c of clinics) { %>
-      <div class="card">
+      <div class="card clinic-card">
+        <span class="step-icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" focusable="false"><path d="M12 21s-6-5.4-6-11a6 6 0 0 1 12 0c0 5.6-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg></span>
         <h3><a class="plain stretched" href="/clinics/<%= c.slug %>"><%= c.name %></a></h3>
         <p class="muted small"><%= c.address %>, <%= c.city %></p>
-        <% if (c.opening_hours) { %><p class="small"><%= c.opening_hours %></p><% } %>
+        <% if (c.opening_hours) { %><p class="small hours"><%= c.opening_hours %></p><% } %>
+        <span class="card-link" aria-hidden="true">View clinic <%- arrow %></span>
       </div>
     <% } %>
   </div>
   <% if (cityPages.length) { %>
-    <p class="small" style="margin-top:12px"><span class="muted">Medical tests in:</span>
-      <% cityPages.forEach((c, i) => { %><%= i ? ' · ' : '' %><a href="/medical-tests/<%= c.slug %>"><%= c.name %></a><% }) %></p>
+    <p class="city-links small"><span class="muted">Medical tests in:</span>
+      <% cityPages.forEach((c) => { %><a class="pill-link" href="/medical-tests/<%= c.slug %>"><%= c.name %></a><% }) %></p>
   <% } %>
 </section>
 
 <% if (faqs.length) { %>
-<section class="stack" style="margin-top:32px">
-  <div class="page-head"><h2>Questions people ask</h2><a href="/faq">All questions →</a></div>
-  <div class="card faq">
-    <% for (const f of faqs) { %>
-      <details><summary><%= f.question %></summary><div class="prose"><%- f.html %></div></details>
-    <% } %>
+<section class="section tint bleed" aria-labelledby="faq-title">
+  <div class="container narrow">
+    <div class="section-head">
+      <h2 id="faq-title">Questions people ask</h2>
+      <p>Quick answers before you book. <a href="/faq">See all questions</a>.</p>
+    </div>
+    <div class="faq faq-list">
+      <% for (const f of faqs) { %>
+        <details><summary><%= f.question %></summary><div class="prose"><%- f.html %></div></details>
+      <% } %>
+    </div>
   </div>
 </section>
 <% } %>
 
 <% if (guides.length) { %>
-<section class="stack" style="margin-top:32px">
-  <div class="page-head"><h2>Guides &amp; advice</h2><a href="/guides">All guides →</a></div>
+<section class="section" aria-labelledby="guides-title">
+  <div class="section-head">
+    <h2 id="guides-title">Guides <span class="hl">&amp; advice</span></h2>
+    <p>Plain-English answers about medical tests, certificates and what to expect. <a href="/guides">All guides</a>.</p>
+  </div>
   <div class="grid grid-3">
     <% for (const g of guides) { %>
-      <div class="card">
+      <div class="card guide-card">
         <h3><a class="plain stretched" href="/guides/<%= g.slug %>"><%= g.title %></a></h3>
         <% if (g.summary) { %><p class="muted small"><%= g.summary %></p><% } %>
+        <span class="card-link" aria-hidden="true">Read guide <%- arrow %></span>
       </div>
     <% } %>
   </div>
 </section>
 <% } %>
+
+<section class="cta-panel" aria-labelledby="cta-title">
+  <h2 id="cta-title">Ready when <span class="hl">you are.</span></h2>
+  <p>Pick a test, choose a clinic and a time, and pay securely in a few minutes. Your confirmation arrives straight away.</p>
+  <div class="row">
+    <a class="btn accent large" href="<%= bookHref %>">Book a test <%- arrow %></a>
+    <a class="btn ghost large" href="/clinics">Find a clinic</a>
+  </div>
+</section>
 <%- include('partials/footer') %>
