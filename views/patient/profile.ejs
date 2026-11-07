@@ -6,7 +6,7 @@
     <form method="post" action="/patient/profile">
       <%- include('../partials/csrf') %>
       <div class="field"><label for="name">Full name</label><input id="name" name="name" type="text" value="<%= user.name %>" required></div>
-      <div class="field"><label>Email</label><input type="email" value="<%= user.email %>" disabled><span class="hint">Contact the clinic to change your email.</span></div>
+      <div class="field"><label for="profile-email">Email</label><input id="profile-email" type="email" value="<%= user.email %>" disabled aria-describedby="profile-email-hint"><span class="hint" id="profile-email-hint">Contact the clinic to change your email.</span></div>
       <div class="form-row">
         <div class="field"><label for="phone">Phone</label><input id="phone" name="phone" type="tel" value="<%= user.phone || '' %>"></div>
         <div class="field"><label for="dob">Date of birth</label><input id="dob" name="date_of_birth" type="date" value="<%= user.date_of_birth || '' %>"></div>
