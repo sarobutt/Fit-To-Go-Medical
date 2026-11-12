@@ -144,6 +144,13 @@ function createApp(pool) {
       req.flash('error', 'We could not reach our payment provider. Please try again in a moment.');
       return res.redirect(backUrl(req, '/'));
     }
+    // Problems with the request itself (too large, unreadable form) are the sender's, not a server fault.
+    const status = err.status || err.statusCode;
+    if (status >= 400 && status < 500) {
+      return res.status(status).render('error', status === 413
+        ? { title: 'Too much information', message: 'That form was too long for us to accept. Please shorten it and try again.' }
+        : { title: 'Something was wrong with that request', message: 'Please go back and try again.' });
+    }
     console.error(err);
     res.status(500).render('error', { title: 'Something went wrong', message: 'Please try again in a moment.' });
   });

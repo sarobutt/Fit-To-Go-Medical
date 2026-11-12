@@ -49,6 +49,21 @@ test('form posts without a CSRF token are rejected', async () => {
   assert.equal(res.status, 403);
 });
 
+test('an anti-forgery code with unusual characters is refused cleanly, not with a server error', async () => {
+  const agent = await login(ctx.app, 'pat@test.io');
+  // Same number of characters as a real code, but more bytes: must still be a plain 403.
+  const res = await agent.post('/patient/profile').type('form').send({ name: 'Hacker', _csrf: 'é'.repeat(24) + 'x'.repeat(24) });
+  assert.equal(res.status, 403);
+});
+
+test('oversized and malformed requests get a clear 4xx answer, not "something went wrong"', async () => {
+  const big = await request(ctx.app).post('/careers').type('form').send({ message: 'a'.repeat(200_000) });
+  assert.equal(big.status, 413);
+  assert.match(big.text, /too long|too much/i);
+  const bad = await request(ctx.app).post('/login').set('content-type', 'application/x-www-form-urlencoded; charset=koi8-z').send('email=a');
+  assert.ok(bad.status >= 400 && bad.status < 500, `status ${bad.status}`);
+});
+
 test('patient pages are never kept in the browser cache', async () => {
   const agent = await login(ctx.app, 'pat@test.io');
   for (const path of ['/patient', '/patient/appointments', '/patient/profile']) {
@@ -134,6 +149,8 @@ test('Stripe webhook confirms payment, is idempotent, and rejects bad signatures
 
   const bad = await webhook(ctx.app, { type: 'checkout.session.completed', data: { object: session } }, 'forged');
   assert.equal(bad.status, 400);
+  // The reply doesn't echo Stripe's internal error text back to whoever sent the request.
+  assert.doesNotMatch(bad.text, /No signatures found/);
   assert.equal((await ctx.db.one('SELECT status FROM appointments')).status, 'pending_payment');
 
   for (let i = 0; i < 2; i++) {
