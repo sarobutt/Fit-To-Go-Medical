@@ -121,6 +121,7 @@ function createApp(pool) {
 
   app.use('/', require('./routes/public')(db));
   app.use('/', require('./routes/careers')(db));
+  app.use('/', require('./routes/business')(db));
   app.use('/', require('./routes/auth')(db));
   app.use('/', require('./routes/password-reset')(db));
   app.use('/payments', require('./routes/payments')(db));

@@ -1,0 +1,57 @@
+<%- include('../partials/header') %>
+<div class="page-head"><div><h1>Business requests</h1>
+  <p class="muted">Sent from the "For businesses" page. Each one is kept for <%= keepMonths %> months and then deleted automatically.</p></div></div>
+<% if (!businessEmail || !emailOn) { %>
+  <div class="flash info">Requests are not being emailed yet<%= !businessEmail ? ' – no email address is set' : ' – outgoing email is not set up' %>. They are all saved here. To have them forwarded, set <strong>BUSINESS_EMAIL</strong><%= !emailOn ? ' and the SMTP email settings' : '' %> in the site settings.</div>
+<% } else { %>
+  <p class="small muted">New requests are also emailed to <strong><%= businessEmail %></strong>.</p>
+<% } %>
+
+<nav class="chips" aria-label="Filter by status" style="margin-bottom:16px">
+  <a class="chip <%= !status ? 'selected' : '' %>" href="/admin/business-requests"<%- !status ? ' aria-current="page"' : '' %>>All</a>
+  <% for (const [key, label] of Object.entries(STATUSES)) { %>
+    <a class="chip <%= status === key ? 'selected' : '' %>" href="/admin/business-requests?status=<%= key %>"<%- status === key ? ' aria-current="page"' : '' %>><%= label %> (<%= counts[key] || 0 %>)</a>
+  <% } %>
+</nav>
+
+<% if (!requests.length) { %><div class="card"><p class="muted" style="margin:0"><%= status ? 'No requests with this status.' : 'No requests yet.' %></p></div><% } %>
+<% for (const r of requests) { %>
+  <section class="card" style="margin-bottom:14px">
+    <div class="card-head">
+      <div>
+        <h2 style="margin:0"><%= r.company %></h2>
+        <div class="small muted"><%= r.industry || 'Industry not given' %> · <%= time.formatDateTime(new Date(r.created_at)) %></div>
+      </div>
+      <span class="badge <%= { new: 'pending', contacted: 'checked_in', agreed: 'confirmed', not_proceeding: 'expired' }[r.status] %>"><%= STATUSES[r.status] %></span>
+    </div>
+    <dl class="details" style="margin:12px 0">
+      <dt>Contact</dt><dd><%= r.contact_name %><%= r.job_title ? ', ' + r.job_title : '' %></dd>
+      <dt>Email</dt><dd><a href="mailto:<%= r.email %>"><%= r.email %></a></dd>
+      <% if (r.phone) { %><dt>Phone</dt><dd><a href="tel:<%= r.phone.replace(/\s/g, '') %>"><%= r.phone %></a></dd><% } %>
+      <dt>How many</dt><dd><%= r.headcount %></dd>
+      <dt>Tests</dt><dd><%= r.tests || 'Not chosen yet' %></dd>
+      <dt>Where</dt><dd><%= LOCATIONS[r.location] %></dd>
+      <% if (r.site_address) { %><dt>Premises</dt><dd style="white-space:pre-line"><%= r.site_address %></dd><% } %>
+      <% if (r.preferred_dates) { %><dt>Preferred dates</dt><dd><%= r.preferred_dates %></dd><% } %>
+    </dl>
+    <% if (r.message) { %><p style="white-space:pre-line"><%= r.message %></p><% } %>
+    <form method="post" action="/admin/business-requests/<%= r.id %>" class="request-update">
+      <%- include('../partials/csrf') %>
+      <div class="form-row">
+        <div class="field"><label for="status-<%= r.id %>">Status</label>
+          <select id="status-<%= r.id %>" name="status">
+            <% for (const [key, label] of Object.entries(STATUSES)) { %><option value="<%= key %>" <%= r.status === key ? 'selected' : '' %>><%= label %></option><% } %>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label for="notes-<%= r.id %>">Notes <span class="hint">(only admins see these)</span></label>
+        <textarea id="notes-<%= r.id %>" name="admin_notes" rows="2" maxlength="3000"><%= r.admin_notes || '' %></textarea></div>
+      <div class="row">
+        <button class="btn small">Save</button>
+        <span class="spacer"></span>
+        <button class="btn small danger" formaction="/admin/business-requests/<%= r.id %>/delete" data-confirm-button="Delete this request from <%= r.company %>?">Delete</button>
+      </div>
+    </form>
+  </section>
+<% } %>
+<%- include('../partials/footer') %>

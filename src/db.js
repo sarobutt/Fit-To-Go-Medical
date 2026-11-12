@@ -225,6 +225,28 @@ CREATE TABLE IF NOT EXISTS job_applications (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Enquiries sent from the "For businesses" page. Deleted automatically after 24 months.
+CREATE TABLE IF NOT EXISTS business_requests (
+  id              SERIAL PRIMARY KEY,
+  company         TEXT NOT NULL,
+  contact_name    TEXT NOT NULL,
+  job_title       TEXT,
+  email           TEXT NOT NULL,
+  phone           TEXT,
+  industry        TEXT,
+  headcount       TEXT NOT NULL,
+  tests           TEXT,
+  location        TEXT NOT NULL CHECK (location IN ('clinic', 'onsite', 'either')),
+  site_address    TEXT,
+  preferred_dates TEXT,
+  message         TEXT,
+  status          TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'agreed', 'not_proceeding')),
+  admin_notes     TEXT,
+  emailed         BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS audit_log (
   id         SERIAL PRIMARY KEY,
   user_id    INTEGER REFERENCES users(id),
