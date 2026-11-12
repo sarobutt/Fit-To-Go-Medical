@@ -1,7 +1,5 @@
 <%- include('partials/header') %>
 <% const bookHref = user && user.role === 'patient' ? '/patient/book' : '/register';
-   const cities = [...new Set(clinics.map((c) => c.city))];
-   const cityText = cities.length > 1 ? cities.slice(0, -1).join(', ') + ' & ' + cities[cities.length - 1] : cities[0];
    const fromPrice = tests.length ? Math.min(...tests.map((t) => t.price_pence)) : null;
    const arrow = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'; %>
 
@@ -19,7 +17,7 @@
 <section class="hero bleed" aria-labelledby="hero-title">
   <div class="container hero-inner">
     <div class="hero-copy">
-      <% if (cityText) { %><p class="eyebrow-pill">Clinics in <%= cityText %> · Book online any time</p><% } %>
+      <p class="eyebrow-pill">Book online any time</p>
       <h1 id="hero-title">Medical tests, <span class="hl">booked in minutes.</span></h1>
       <p>Choose your test, pick a clinic and a time that suits you, and pay securely online. Our doctors will take it from there.</p>
       <div class="row hero-actions">
@@ -103,7 +101,7 @@
 <section class="section" aria-labelledby="clinics-title">
   <div class="section-head">
     <h2 id="clinics-title">Our <span class="hl">clinics</span></h2>
-    <% if (cityText) { %><p>Friendly, doctor-led clinics in <%= cityText %>.</p><% } %>
+    <p>Friendly, doctor-led clinics. Find the one nearest you.</p>
   </div>
   <div class="grid grid-3">
     <% for (const c of clinics) { %>
