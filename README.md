@@ -68,6 +68,8 @@ Set each doctor's registration number (e.g. GMC number) in **Admin → Doctors**
 
 **Careers page.** Applications sent from `/careers` are saved in **Admin → Job applications** (deleted automatically after 12 months). To have each one emailed as well, set `CAREERS_EMAIL` along with the `SMTP_*` settings.
 
+**For businesses.** Employers send enquiries from `/business` (in the main menu as "For businesses"). They are saved in **Admin → Business requests**, where admins set a status (New / Contacted / Agreed / Not proceeding) and keep notes; requests are deleted automatically after 24 months. To have each one emailed as well, set `BUSINESS_EMAIL` along with the `SMTP_*` settings. The full plan for business accounts is in `docs/business-accounts-plan.md`.
+
 Doctor permissions an admin controls: *check patients in*, *record notes & results*, *view patient history*, *cancel appointments (with refund)*.
 
 ## Tech stack

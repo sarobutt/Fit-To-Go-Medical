@@ -31,7 +31,8 @@
 <% const isAdmin = user && user.role === 'admin';
    const isActive = (href) => (href === '/' + (user ? user.role : '') ? path === href : path.startsWith(href));
    const nav = (href, label) => `<a href="${href}" class="${isActive(href) ? 'active' : ''}"${isActive(href) ? ' aria-current="page"' : ''}>${label}</a>`;
-   const requestsCount = typeof openRequests !== 'undefined' ? openRequests : 0; %>
+   const requestsCount = typeof openRequests !== 'undefined' ? openRequests : 0;
+   const businessCount = typeof newBusinessRequests !== 'undefined' ? newBusinessRequests : 0; %>
 <header class="site-header">
   <div class="container">
     <a class="brand" href="<%= isStaffSite ? '/staff/login' : '/' %>"><picture><source srcset="/img/logo-dark.svg" media="(prefers-color-scheme: dark)"><img class="logo" src="/img/logo.svg" alt="<%= siteName %>" width="153" height="62"></picture><% if (isStaffSite) { %> <span class="portal-tag">Staff portal</span><% } %></a>
@@ -41,6 +42,7 @@
       <% } else if (!user) { %>
         <%- nav('/tests', 'Tests & prices') %>
         <%- nav('/clinics', 'Clinics') %>
+        <%- nav('/business', 'For businesses') %>
         <%- nav('/faq', 'FAQ') %>
         <%- nav('/careers', 'Careers') %>
         <%- nav('/login', 'Sign in') %>
@@ -67,6 +69,7 @@
   <aside class="sidebar" id="admin-menu" aria-label="Admin">
     <% const groups = [
       ['Day to day', [['/admin', 'Overview'], ['/admin/appointments', 'Appointments'], ['/admin/availability', 'Availability']]],
+      ['Business', [['/admin/business-requests', 'Business requests']]],
       ['People', [['/admin/patients', 'Patients'], ['/admin/doctors', 'Doctors'], ['/admin/admins', 'Admins'], ['/admin/applications', 'Job applications']]],
       ['Setup', [['/admin/clinics', 'Clinics'], ['/admin/tests', 'Tests & prices'], ['/admin/guides', 'Guides'], ['/admin/faqs', 'FAQs']]],
       ['Records', [['/admin/payments', 'Payments'], ['/admin/requests', 'Data requests'], ['/admin/audit', 'Audit log']]],
@@ -75,7 +78,7 @@
       <div class="group">
         <div class="group-title"><%= title %></div>
         <% for (const [href, label] of links) { %>
-          <a href="<%= href %>" class="<%= isActive(href) ? 'active' : '' %>"<%- isActive(href) ? ' aria-current="page"' : '' %>><span><%= label %></span><% if (href === '/admin/requests' && requestsCount) { %><span class="badge-count" title="<%= requestsCount %> open"><%= requestsCount %></span><% } %></a>
+          <a href="<%= href %>" class="<%= isActive(href) ? 'active' : '' %>"<%- isActive(href) ? ' aria-current="page"' : '' %>><span><%= label %></span><% if (href === '/admin/requests' && requestsCount) { %><span class="badge-count" title="<%= requestsCount %> open"><%= requestsCount %></span><% } %><% if (href === '/admin/business-requests' && businessCount) { %><span class="badge-count" title="<%= businessCount %> new"><%= businessCount %></span><% } %></a>
         <% } %>
       </div>
     <% } %>

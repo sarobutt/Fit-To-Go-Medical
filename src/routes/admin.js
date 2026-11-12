@@ -15,6 +15,7 @@ const consultation = require('../services/consultation');
 const { consultationRoutes, takeDraft } = require('./consultation');
 const config = require('../config');
 const mailer = require('../services/mailer');
+const business = require('./business');
 
 /** Signs a user out everywhere by deleting their stored sessions. */
 async function endSessions(db, userId) {
@@ -52,6 +53,7 @@ module.exports = (db) => {
   // Shown as a number next to "Data requests" in the admin menu.
   router.use(async (req, res, next) => {
     res.locals.openRequests = (await db.one(`SELECT COUNT(*) AS n FROM data_requests WHERE status = 'open'`)).n;
+    res.locals.newBusinessRequests = (await db.one(`SELECT COUNT(*) AS n FROM business_requests WHERE status = 'new'`)).n;
     next();
   });
 
@@ -756,6 +758,40 @@ module.exports = (db) => {
     await audit(db, req.user.id, 'job_application.delete', 'job_application', a.id);
     req.flash('success', `Application from ${a.name} deleted.`);
     res.redirect('/admin/applications');
+  });
+
+  // ---------- Business requests (from the "For businesses" page) ----------
+  router.get('/business-requests', async (req, res) => {
+    await db.query(`DELETE FROM business_requests WHERE created_at < now() - make_interval(months => $1)`, [business.KEEP_MONTHS]);
+    const status = Object.hasOwn(business.STATUSES, req.query.status) ? req.query.status : '';
+    const requests = await db.all(
+      `SELECT * FROM business_requests WHERE ($1 = '' OR status = $1) ORDER BY created_at DESC LIMIT 500`, [status]);
+    const counts = Object.fromEntries((await db.all('SELECT status, COUNT(*) AS n FROM business_requests GROUP BY status'))
+      .map((r) => [r.status, r.n]));
+    res.render('admin/business-requests', {
+      title: 'Business requests', requests, counts, status, STATUSES: business.STATUSES, LOCATIONS: business.LOCATIONS,
+      businessEmail: config.businessEmail, emailOn: mailer.emailConfigured(), keepMonths: business.KEEP_MONTHS,
+    });
+  });
+
+  router.post('/business-requests/:id', async (req, res) => {
+    const status = Object.hasOwn(business.STATUSES, req.body.status) ? req.body.status : null;
+    if (!status) throw new ValidationError('Choose a status.');
+    const r = await db.one(
+      `UPDATE business_requests SET status = $2, admin_notes = $3, updated_at = now() WHERE id = $1 RETURNING id, company`,
+      [id(req.params.id), status, text(req.body.admin_notes, 3000) || null]);
+    if (!r) throw new ValidationError('Request not found.');
+    await audit(db, req.user.id, 'business_request.update', 'business_request', r.id, { status });
+    req.flash('success', `${r.company}: saved as "${business.STATUSES[status]}".`);
+    res.redirect(backUrl(req, '/admin/business-requests'));
+  });
+
+  router.post('/business-requests/:id/delete', async (req, res) => {
+    const r = await db.one('DELETE FROM business_requests WHERE id = $1 RETURNING id, company', [id(req.params.id)]);
+    if (!r) throw new ValidationError('Request not found.');
+    await audit(db, req.user.id, 'business_request.delete', 'business_request', r.id);
+    req.flash('success', `Request from ${r.company} deleted.`);
+    res.redirect('/admin/business-requests');
   });
 
   // ---------- Patients' data requests ----------

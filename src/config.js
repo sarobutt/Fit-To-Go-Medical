@@ -58,6 +58,7 @@ module.exports = {
   },
   // Where Careers-page applications are emailed. Leave empty to keep them only in Admin → Job applications.
   careersEmail: env.CAREERS_EMAIL,
+  businessEmail: env.BUSINESS_EMAIL,
 
   // Stripe Checkout sessions last at least 30 minutes, so the slot is held that long.
   holdMinutes: 30,

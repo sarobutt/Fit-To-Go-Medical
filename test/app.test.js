@@ -853,3 +853,85 @@ test('FAQs: starter questions, the FAQ page with structured data, the home page,
   assert.equal((await ctx.db.one('SELECT COUNT(*) AS n FROM faqs')).n, 0);
   assert.match((await app.get('/faq')).text, /coming soon/);
 });
+
+test('for businesses: employers send a request, which admins see, update and delete', async () => {
+  const config = require('../src/config');
+  const app = request.agent(ctx.app);
+  const page = await app.get('/business');
+  assert.equal(page.status, 200);
+  assert.match(page.text, /href="\/business"/); // in the menu
+  assert.match(page.text, /Work with us/);
+  assert.match(page.text, /<link rel="canonical" href="http:\/\/localhost:3000\/business">/);
+  assert.match(page.text, /value="Blood test"/); // the clinic's own tests are offered
+  const csrf = csrfFrom(page.text);
+  const send = (body) => app.post('/business').type('form').send({ _csrf: csrf, ...body });
+  const details = {
+    company: 'ABC Haulage', contact_name: 'Hannah Hughes', job_title: 'HR Manager', email: 'Hannah@ABC.example',
+    phone: '0161 000 0000', industry: 'Transport & logistics', headcount: 'Not sure yet', tests: ['Blood test', 'Made-up test'],
+    location: 'clinic', preferred_dates: 'Early March', message: 'New drivers starting soon.', consent: 'on',
+  };
+
+  // Missing details are explained, and what was typed is kept.
+  const bad = await send({ ...details, headcount: '', location: 'onsite', site_address: '', consent: '' });
+  assert.equal(bad.status, 400);
+  assert.match(bad.text, /roughly how many people/);
+  assert.match(bad.text, /where your premises are/);
+  assert.match(bad.text, /confirm we can use these details/);
+  assert.match(bad.text, /value="ABC Haulage"/);
+
+  // Saved for admins; unknown tests are ignored; no email without an address set.
+  const ok = await send(details);
+  assert.equal(ok.headers.location, '/business/thanks');
+  let saved = await ctx.db.one('SELECT * FROM business_requests');
+  assert.equal(saved.email, 'hannah@abc.example');
+  assert.equal(saved.tests, 'Blood test');
+  assert.equal(saved.status, 'new');
+  assert.equal(ctx.mail.length, 0);
+
+  // With an address set it's emailed too, with replies going to the business.
+  config.businessEmail = 'business@clinic.test';
+  try {
+    await send({ ...details, company: 'Site Visit Ltd', location: 'onsite', site_address: 'Unit 4, Trafford Park, M17 1AA' });
+  } finally {
+    config.businessEmail = undefined;
+  }
+  const sent = ctx.mail.at(-1);
+  assert.equal(sent.to, 'business@clinic.test');
+  assert.equal(sent.replyTo, 'hannah@abc.example');
+  assert.match(sent.subject, /Business enquiry: Site Visit Ltd/);
+  assert.match(sent.text, /At our premises/);
+  assert.match(sent.text, /Trafford Park/);
+
+  // Spam bots fill in the hidden field: nothing is saved.
+  await send({ ...details, company: 'Bot Co', website: 'http://spam.test' });
+  assert.equal(await ctx.db.one(`SELECT 1 FROM business_requests WHERE company = 'Bot Co'`), undefined);
+
+  // Admins see new requests (with a count in the menu), update status and notes, filter, and delete.
+  const admin = await login(ctx.app, 'admin@test.io');
+  const list = await admin.get('/admin/business-requests');
+  assert.equal(list.status, 200);
+  assert.match(list.text, /ABC Haulage/);
+  assert.match(list.text, /Site Visit Ltd/);
+  assert.match(list.text, /title="2 new"/);
+  assert.match(list.text, /not being emailed yet/);
+  saved = await ctx.db.one(`SELECT id FROM business_requests WHERE company = 'ABC Haulage'`);
+  await admin.post$(`/admin/business-requests/${saved.id}`, { status: 'contacted', admin_notes: 'Called Hannah, sending prices.' });
+  const updated = await ctx.db.one('SELECT status, admin_notes FROM business_requests WHERE id = $1', [saved.id]);
+  assert.equal(updated.status, 'contacted');
+  assert.equal(updated.admin_notes, 'Called Hannah, sending prices.');
+  const filtered = await admin.get('/admin/business-requests?status=contacted');
+  assert.match(filtered.text, /ABC Haulage/);
+  assert.doesNotMatch(filtered.text, /Site Visit Ltd/);
+  await admin.post$(`/admin/business-requests/${saved.id}/delete`);
+  assert.equal((await ctx.db.one('SELECT COUNT(*) AS n FROM business_requests')).n, 1);
+
+  // Requests older than 24 months are removed automatically.
+  await ctx.db.query(`UPDATE business_requests SET created_at = now() - interval '25 months'`);
+  assert.doesNotMatch((await admin.get('/admin/business-requests')).text, /Site Visit Ltd/);
+
+  // Patients and doctors can't see requests.
+  const patient = await login(ctx.app, 'pat@test.io');
+  assert.equal((await patient.get('/admin/business-requests')).status, 404);
+  const doctor = await login(ctx.app, 'doc@test.io');
+  assert.doesNotMatch((await doctor.get('/admin/business-requests')).text, /ABC Haulage|Site Visit/);
+});

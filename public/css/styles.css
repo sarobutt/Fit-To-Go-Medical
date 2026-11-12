@@ -654,3 +654,27 @@ main:has(> .home-top) > .flash { margin: 16px 0; }
   *, *::before, *::after { transition: none !important; }
   .card:has(a.stretched):hover, .test-tile:hover, .choice:hover { transform: none; }
 }
+
+/* ======================================================================
+   For businesses
+   ====================================================================== */
+.business-hero { margin-top: 8px; }
+.business-hero .lead { max-width: 64ch; }
+.offer-list { list-style: none; padding: 0; margin: 0 auto; max-width: 900px; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); }
+.offer-list li { display: flex; gap: 12px; align-items: center; padding: 14px 18px; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--border); }
+.offer-list .tick { width: 28px; height: 28px; border-radius: 50%; background: var(--brand-soft); color: var(--brand); display: grid; place-items: center; font-weight: 800; flex-shrink: 0; }
+.offer-list strong { display: block; }
+.offer-list small { color: var(--muted); }
+.business-form { max-width: 860px; margin: 8px auto 72px; padding: 32px; scroll-margin-top: 90px; }
+.business-form fieldset { border: 0; padding: 0; margin: 0 0 22px; }
+.business-form legend { font-weight: 700; font-size: 1.02rem; color: var(--brand-dark); padding: 0 0 6px; margin-bottom: 14px; border-bottom: 1px solid var(--border); width: 100%; }
+.field > .label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: 8px; }
+.check-grid { display: grid; gap: 4px 16px; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); }
+.check-grid .checkbox { margin: 0; padding: 8px 10px; border-radius: 10px; border: 1px solid transparent; }
+.check-grid .checkbox:hover { background: var(--brand-soft); }
+.check-grid .checkbox:has(input:checked) { border-color: color-mix(in srgb, var(--brand) 45%, var(--border)); background: var(--brand-soft); }
+.check-grid input[type=radio] { margin-top: 1px; width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--brand); }
+.request-update { border-top: 1px solid var(--border); padding-top: 14px; }
+.request-update .form-row { grid-template-columns: minmax(0, 260px); }
+@media (max-width: 640px) { .business-form { padding: 22px 18px; margin-bottom: 48px; } }
+.grid-3.six { grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }

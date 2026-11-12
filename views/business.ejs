@@ -1,0 +1,161 @@
+<%- include('partials/header') %>
+<% const ico = (d) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${d}</svg>`;
+   const checked = (v) => form.tests.includes(v) ? 'checked' : ''; %>
+
+<div class="seo-hero business-hero">
+  <h1>Work with us <span class="hl">as a business</span></h1>
+  <p class="lead">Medicals and health checks for your whole team, at our clinics or at your premises. Tell us what you need and we'll put together an arrangement that suits you, whether it's two people or two hundred.</p>
+  <ul class="facts">
+    <li><span class="k">Team size</span><span class="v">Any size</span></li>
+    <li><span class="k">Where</span><span class="v">Our clinic or yours</span></li>
+    <li><span class="k">Billing</span><span class="v">Agreed prices, one invoice</span></li>
+  </ul>
+  <div class="row">
+    <a class="btn accent" href="#enquire">Send an enquiry</a>
+    <a class="btn secondary" href="/tests">See our tests</a>
+  </div>
+</div>
+
+<section class="section" aria-labelledby="who-title">
+  <div class="section-head">
+    <h2 id="who-title">Who we <span class="hl">work with</span></h2>
+    <p>Employers of every size, in any industry, who need their people checked and certified.</p>
+  </div>
+  <div class="grid grid-3 six">
+    <div class="card"><span class="step-icon"><%- ico('<rect x="2" y="7" width="13" height="10" rx="1"/><path d="M15 10h4l3 3v4h-7z"/><circle cx="6.5" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/>') %></span>
+      <h3>Transport &amp; logistics</h3><p class="muted">Driver medicals for new and renewing HGV and bus drivers.</p></div>
+    <div class="card"><span class="step-icon"><%- ico('<path d="M3 20h18M5 20V10l7-5 7 5v10"/><path d="M10 20v-5h4v5"/>') %></span>
+      <h3>Construction &amp; industry</h3><p class="muted">Pre-employment medicals so new starters can get to work.</p></div>
+    <div class="card"><span class="step-icon"><%- ico('<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 4.5a3 3 0 0 1 0 6M21 20c0-2.6-1.6-4.8-4-5.6"/>') %></span>
+      <h3>Recruitment agencies</h3><p class="muted">Quick medicals for candidates before they're placed.</p></div>
+    <div class="card"><span class="step-icon"><%- ico('<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>') %></span>
+      <h3>Care &amp; healthcare</h3><p class="muted">Health checks and blood tests for care teams.</p></div>
+    <div class="card"><span class="step-icon"><%- ico('<path d="M2 16l20-8-4 10-6-3-3 4v-5z"/>') %></span>
+      <h3>Teams who travel</h3><p class="muted">Fit-to-fly tests and travel health advice before trips abroad.</p></div>
+    <div class="card"><span class="step-icon"><%- ico('<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/>') %></span>
+      <h3>Any employer</h3><p class="muted">Routine and pre-employment health checks for your staff.</p></div>
+  </div>
+</section>
+
+<% if (tests.length) { %>
+<section class="section tint bleed" aria-labelledby="offer-title">
+  <div class="container">
+    <div class="section-head">
+      <h2 id="offer-title">What we <span class="hl">offer</span></h2>
+      <p>All our tests are available to businesses. Prices are agreed with each company.</p>
+    </div>
+    <ul class="offer-list">
+      <% for (const t of tests) { %><li><span class="tick" aria-hidden="true">✓</span><span><strong><%= t.name %></strong><small><%= t.duration_minutes %> min appointment</small></span></li><% } %>
+    </ul>
+  </div>
+</section>
+<% } %>
+
+<section class="section" aria-labelledby="why-title">
+  <div class="section-head">
+    <h2 id="why-title">Why work <span class="hl">with us</span></h2>
+  </div>
+  <div class="grid grid-3 six">
+    <div class="card"><h3>Any size of team</h3><p class="muted">No minimum and no maximum. Not sure of numbers yet? That's fine, we can plan as you go.</p></div>
+    <div class="card"><h3>Our clinic or yours</h3><p class="muted">Send your staff to one of our clinics, or we'll come to your premises with our doctors.</p></div>
+    <div class="card"><h3>Agreed prices, one invoice</h3><p class="muted">Prices agreed for your company and a single invoice, instead of staff paying and claiming back.</p></div>
+    <div class="card"><h3>GMC-registered doctors</h3><p class="muted">Every medical is carried out by a registered doctor and every certificate carries their GMC number.</p></div>
+    <div class="card"><h3>Your staff's privacy respected</h3><p class="muted">You see attendance and the outcome. Detailed results are shared only with each employee's consent.</p></div>
+    <div class="card"><h3>Free re-test promise</h3><p class="muted">If a result is unusual for an everyday reason, we'll re-test free of charge, for your staff too.</p></div>
+  </div>
+</section>
+
+<section class="section tint bleed" aria-labelledby="how-title">
+  <div class="container">
+    <div class="section-head">
+      <h2 id="how-title">How it <span class="hl">works</span></h2>
+    </div>
+    <ol class="steps">
+      <li class="card step"><span class="step-icon"><%- ico('<path d="M4 4h16v12H8l-4 4z"/>') %></span>
+        <div><h3>Tell us what you need</h3><p class="muted">Send the form below. Rough numbers are fine.</p></div></li>
+      <li class="card step"><span class="step-icon"><%- ico('<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>') %></span>
+        <div><h3>We agree the details</h3><p class="muted">Tests, prices, dates, and whether we see your team at our clinic or yours.</p></div></li>
+      <li class="card step"><span class="step-icon"><%- ico('<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="12" r="2.2"/><path d="M14 10h4M14 14h3"/>') %></span>
+        <div><h3>Your team is seen</h3><p class="muted">Each person shows photo ID at check-in, then sees one of our doctors.</p></div></li>
+      <li class="card step"><span class="step-icon"><%- ico('<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 14l2 2 4-4"/>') %></span>
+        <div><h3>You get a summary</h3><p class="muted">Who attended and their outcome, plus one invoice for the work.</p></div></li>
+    </ol>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="bfaq-title">
+  <div class="container narrow">
+    <div class="section-head"><h2 id="bfaq-title">Questions from <span class="hl">businesses</span></h2></div>
+    <div class="faq faq-list">
+      <details><summary>How many people can you test?</summary><p>Any number. We plan each arrangement around your team, adding appointments, days or doctors as needed. If you don't know numbers yet, choose "Not sure yet" and we'll work it out together.</p></details>
+      <details><summary>Can you come to our premises?</summary><p>Yes. Choose "At our premises" on the form and tell us where you are. We'll agree a date and what we need on site, such as a private room.</p></details>
+      <details><summary>Who pays?</summary><p>Usually we invoice your company at the prices we've agreed, so your staff don't pay anything. If you'd rather your employees pay and claim it back, we can do that too.</p></details>
+      <details><summary>What will we see about our employees?</summary><p>By default, whether each person attended and their outcome, such as fit for the role. Detailed medical results are only shared with you if the employee gives their consent.</p></details>
+      <details><summary>What if someone doesn't turn up?</summary><p>We'll let you know, and we agree with you in advance whether a missed appointment is rebooked or charged.</p></details>
+      <details><summary>Do our employees need an email address?</summary><p>No. If they have one we'll send their confirmation and reminder to them directly; if not, we'll send everything to your contact person.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="card business-form step-anchor" id="enquire" aria-labelledby="enquire-title">
+  <h2 id="enquire-title">Send an enquiry</h2>
+  <p class="muted">Tell us a little about what you need and we'll get back to you, usually within one working day.</p>
+  <form method="post" action="/business">
+    <%- include('partials/csrf') %>
+    <fieldset>
+      <legend>About your company</legend>
+      <div class="form-row">
+        <div class="field"><label for="company">Company name</label><input id="company" name="company" type="text" value="<%= form.company || '' %>" autocomplete="organization" maxlength="200" required></div>
+        <div class="field"><label for="industry">Industry <span class="hint">(optional)</span></label>
+          <select id="industry" name="industry">
+            <option value="">Choose…</option>
+            <% for (const i of industries) { %><option<%= form.industry === i ? ' selected' : '' %>><%= i %></option><% } %>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="contact_name">Your name</label><input id="contact_name" name="contact_name" type="text" value="<%= form.contact_name || '' %>" autocomplete="name" maxlength="200" required></div>
+        <div class="field"><label for="job_title">Job title <span class="hint">(optional)</span></label><input id="job_title" name="job_title" type="text" value="<%= form.job_title || '' %>" autocomplete="organization-title" maxlength="200"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" value="<%= form.email || '' %>" autocomplete="email" maxlength="200" required></div>
+        <div class="field"><label for="phone">Phone <span class="hint">(optional)</span></label><input id="phone" name="phone" type="tel" value="<%= form.phone || '' %>" autocomplete="tel" maxlength="50"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>What you need</legend>
+      <div class="field"><label for="headcount">Roughly how many people?</label>
+        <select id="headcount" name="headcount" required>
+          <option value="">Choose…</option>
+          <% for (const h of headcounts) { %><option<%= form.headcount === h ? ' selected' : '' %>><%= h %></option><% } %>
+        </select>
+      </div>
+      <% if (tests.length) { %>
+        <div class="field" role="group" aria-labelledby="tests-label">
+          <span class="label" id="tests-label">Which tests? <span class="hint">(optional, tick any)</span></span>
+          <div class="check-grid">
+            <% for (const t of tests) { %><label class="checkbox"><input type="checkbox" name="tests" value="<%= t.name %>" <%= checked(t.name) %>> <span><%= t.name %></span></label><% } %>
+          </div>
+        </div>
+      <% } %>
+      <div class="field" role="radiogroup" aria-labelledby="where-label">
+        <span class="label" id="where-label">Where would you like the tests done?</span>
+        <div class="check-grid">
+          <% for (const [value, label] of Object.entries(locations)) { %><label class="checkbox"><input type="radio" name="location" value="<%= value %>" <%= form.location === value ? 'checked' : '' %> required> <span><%= label %></span></label><% } %>
+        </div>
+      </div>
+      <div class="field"><label for="site_address">Your premises <span class="hint">(needed if we visit you: address or town and postcode, and anything useful such as parking)</span></label>
+        <textarea id="site_address" name="site_address" rows="2" maxlength="1000"><%= form.site_address || '' %></textarea></div>
+      <div class="field"><label for="preferred_dates">Preferred dates <span class="hint">(optional, e.g. "early March" or "weekday mornings")</span></label>
+        <input id="preferred_dates" name="preferred_dates" type="text" value="<%= form.preferred_dates || '' %>" maxlength="500"></div>
+      <div class="field"><label for="message">Anything else? <span class="hint">(optional)</span></label>
+        <textarea id="message" name="message" rows="4" maxlength="3000"><%= form.message || '' %></textarea></div>
+    </fieldset>
+
+    <div class="hp" aria-hidden="true"><label for="website">Leave this empty</label><input id="website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+    <label class="checkbox small"><input type="checkbox" name="consent" required> <span>I agree to <%= siteName %> using these details to reply to this request. They're kept for up to 24 months (<a href="/privacy">privacy policy</a>).</span></label>
+    <button class="btn accent large block" style="margin-top:16px">Send enquiry</button>
+  </form>
+</section>
+<%- include('partials/footer') %>
