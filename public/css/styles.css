@@ -31,8 +31,6 @@
   --hl-on-hero: #8eeee6;
   --label-on-hero: #e3f9f8;     /* small labels on the lighter hero need more contrast */
   --focus: #0c7974;
-  --logo-green: #14855a;
-  --logo-navy: #163d72;
   --danger: #b42318;
   --danger-soft: #fdecea;
   --success: #067647;
@@ -76,8 +74,6 @@
     --hero-1: #041a1c;
     --hero-2: #082f32;
     --focus: #6fe3d9;
-    --logo-green: #3ec486;
-    --logo-navy: #eef4f3;
     --danger: #f97066;
     --danger-soft: #3b1714;
     --success: #47cd89;
@@ -159,7 +155,8 @@ main:has(> .home-top) { padding-top: 0; padding-bottom: 0; }
 .site-header .container { display: flex; align-items: center; gap: 16px; min-height: 72px; flex-wrap: wrap; }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.12rem; letter-spacing: -.01em; color: var(--text); text-decoration: none; }
 .brand:hover { color: var(--text); }
-.logo { display: block; height: 62px; width: 153px; }   /* compact logo: 850 × 345 */
+.brand picture { display: block; }
+.logo { display: block; height: 62px; width: 153px; }   /* header logo image: 850 × 345 */
 .footer-about .logo { height: 100px; width: 249px; }      /* full logo with slogan: 860 × 345 */
 @media (max-width: 640px) { .site-header .logo { height: 54px; width: 133px; } }
 .nav { display: flex; gap: 2px; flex-wrap: wrap; margin-left: auto; align-items: center; }
@@ -186,7 +183,7 @@ main:has(> .home-top) { padding-top: 0; padding-bottom: 0; }
 }
 
 /* ---------- Footer ---------- */
-.site-footer { background: linear-gradient(160deg, #0c686d, #0a565a); color: rgba(255, 255, 255, .82); font-size: .92rem; --focus: #7fe9df; --logo-green: #6cdba6; --logo-navy: #ffffff; }
+.site-footer { background: linear-gradient(160deg, #0c686d, #0a565a); color: rgba(255, 255, 255, .82); font-size: .92rem; --focus: #7fe9df; }
 .site-footer a { color: #fff; }
 .site-footer a:hover { color: #9ff0e8; }
 .footer-grid { display: grid; grid-template-columns: 1.6fr repeat(3, 1fr); gap: 32px; padding-top: 56px; padding-bottom: 40px; }
