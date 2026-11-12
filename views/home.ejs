@@ -3,18 +3,7 @@
    const fromPrice = tests.length ? Math.min(...tests.map((t) => t.price_pence)) : null;
    const arrow = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'; %>
 
-<section class="promise-band bleed home-top" aria-labelledby="promise-title">
-  <div class="container promise">
-    <div class="promise-badge" aria-hidden="true"><span>Free<br>re-test</span></div>
-    <div class="promise-text">
-      <h2 id="promise-title">Everyone has an off day.</h2>
-      <p>A rushed journey, a poor night's sleep or one coffee too many can all push a blood pressure reading up. If a result comes back unusual for a simple, everyday reason, we'll <strong>re-test you free of charge</strong>. No extra fee and no fuss. That's our peace-of-mind promise.</p>
-    </div>
-    <a class="btn accent promise-cta" href="<%= bookHref %>">Book with confidence</a>
-  </div>
-</section>
-
-<section class="hero bleed" aria-labelledby="hero-title">
+<section class="hero bleed home-top" aria-labelledby="hero-title">
   <div class="container hero-inner">
     <div class="hero-copy">
       <p class="eyebrow-pill">Book online any time</p>
@@ -42,6 +31,17 @@
     <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg>Free re-test promise</li>
     <li><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Secure payments by Stripe</li>
   </ul>
+</section>
+
+<section class="promise-band bleed" aria-labelledby="promise-title">
+  <div class="container promise">
+    <div class="promise-badge" aria-hidden="true"><span>Free<br>re-test</span></div>
+    <div class="promise-text">
+      <h2 id="promise-title">Everyone has an off day.</h2>
+      <p>A rushed journey, a poor night's sleep or one coffee too many can all push a blood pressure reading up. If a result comes back unusual for a simple, everyday reason, we'll <strong>re-test you free of charge</strong>. No extra fee and no fuss. That's our peace-of-mind promise.</p>
+    </div>
+    <a class="btn accent promise-cta" href="<%= bookHref %>">Book with confidence</a>
+  </div>
 </section>
 
 <section class="section" aria-labelledby="how-title">

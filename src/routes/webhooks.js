@@ -10,7 +10,8 @@ module.exports = (db) => {
     try {
       event = payments.constructWebhookEvent(req.body, req.get('stripe-signature'));
     } catch (err) {
-      return res.status(400).type('text/plain').send(`Webhook error: ${err.message}`);
+      console.warn('Rejected Stripe webhook:', err.message);
+      return res.status(400).type('text/plain').send('Invalid webhook signature.');
     }
 
     switch (event.type) {

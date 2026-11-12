@@ -120,9 +120,9 @@ function csrf(req, res, next) {
   if (!req.session.csrfToken) req.session.csrfToken = crypto.randomBytes(24).toString('hex');
   res.locals.csrfToken = req.session.csrfToken;
   if (req.method === 'POST') {
-    const sent = String(req.body?._csrf || '');
-    const expected = req.session.csrfToken;
-    if (sent.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(sent), Buffer.from(expected))) {
+    const sent = Buffer.from(String(req.body?._csrf || ''));
+    const expected = Buffer.from(req.session.csrfToken);
+    if (sent.length !== expected.length || !crypto.timingSafeEqual(sent, expected)) {
       return res.status(403).render('error', {
         title: 'Form expired', message: 'Your session changed while the form was open. Please go back and try again.',
       });
